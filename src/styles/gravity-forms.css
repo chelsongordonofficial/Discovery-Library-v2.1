@@ -1,0 +1,585 @@
+/* ==========================================================================
+   Discovery Library — Gravity Forms Theme Integration
+   Applies dark glass, gold & emerald accents, and custom properties
+   matching the Discovery Library design system.
+   Supports: Gravity Forms 2.5+, Theme Framework (Orbital), and Legacy markup.
+   ========================================================================== */
+
+/* 1. CSS Custom Properties for Gravity Forms Orbital / Theme Framework */
+.gform_wrapper,
+.gform_wrapper.gform-theme--framework,
+.gform_wrapper.gform-theme--orbital,
+#gravity-form-mount {
+  /* Colors */
+  --gf-color-primary: #FFC83A;
+  --gf-color-primary-contrast: #1A1300;
+  --gf-color-secondary: #19D68A;
+  --gf-color-secondary-contrast: #01160E;
+  --gf-color-subtle: #A9C7B8;
+  --gf-color-danger: #EF4444;
+  --gf-color-danger-contrast: #FFF;
+  --gf-color-success: #19D68A;
+  --gf-color-success-contrast: #01160E;
+
+  /* Typography */
+  --gf-font-family: 'Google Sans Flex', system-ui, sans-serif;
+  --gf-font-size-base: 14px;
+  --gf-line-height-base: 1.5;
+
+  /* Form Labels */
+  --gf-label-color: #FFF8E1;
+  --gf-label-color-secondary: #A9C7B8;
+  --gf-label-font-size: 13.5px;
+  --gf-label-font-weight: 600;
+  --gf-label-margin-bottom: 6px;
+
+  /* Descriptions & Sublabels */
+  --gf-desc-color: #A9C7B8;
+  --gf-desc-font-size: 12.5px;
+  --gf-sublabel-color: #8faea0;
+  --gf-sublabel-font-size: 12px;
+
+  /* Form Controls (Inputs, Textarea, Select) */
+  --gf-ctrl-bg-color: rgba(2, 14, 9, 0.55);
+  --gf-ctrl-border-color: rgba(120, 240, 190, 0.16);
+  --gf-ctrl-border-width: 1px;
+  --gf-ctrl-border-style: solid;
+  --gf-ctrl-border-radius: 12px;
+  --gf-ctrl-color: #FFF8E1;
+  --gf-ctrl-font-size: 14px;
+  --gf-ctrl-line-height: 1.4;
+  --gf-ctrl-padding-x: 14px;
+  --gf-ctrl-padding-y: 12px;
+  --gf-ctrl-placeholder-color: #7fa08f;
+  --gf-ctrl-focus-border-color: #FFC83A;
+  --gf-ctrl-focus-outline-color: rgba(255, 200, 58, 0.22);
+  --gf-ctrl-focus-bg-color: rgba(3, 20, 13, 0.85);
+
+  /* Form Spacing */
+  --gf-form-gap: 18px;
+  --gf-field-gap: 8px;
+
+  /* Buttons */
+  --gf-btn-bg-color: linear-gradient(135deg, #FFD860, #FFB020);
+  --gf-btn-color: #1A1300;
+  --gf-btn-border-radius: 12px;
+  --gf-btn-font-size: 14px;
+  --gf-btn-font-weight: 700;
+  --gf-btn-padding: 13px 26px;
+  --gf-btn-box-shadow: 0 8px 24px rgba(255, 184, 32, 0.28);
+}
+
+/* 2. Container & Mount Section Styling */
+.gform_wrapper {
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+  font-family: var(--f-body, 'Google Sans Flex', system-ui, sans-serif) !important;
+  color: var(--cream, #FFF8E1) !important;
+  box-sizing: border-box !important;
+}
+
+.gform_wrapper * {
+  box-sizing: border-box !important;
+}
+
+/* Mount target placeholder indicator (shown when waiting for WP form injection) */
+.gform-mount-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  border: 1.5px dashed var(--line, rgba(120, 240, 190, 0.2));
+  border-radius: 16px;
+  background: rgba(2, 14, 9, 0.3);
+  transition: all 0.3s ease;
+}
+
+.gform-mount-placeholder:hover {
+  border-color: var(--gold, #FFC83A);
+  background: rgba(2, 14, 9, 0.45);
+}
+
+.gf-placeholder-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 200, 58, 0.12);
+  border: 1px solid var(--line-gold, rgba(255, 200, 58, 0.45));
+  color: var(--gold, #FFC83A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.gf-placeholder-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.gf-placeholder-title {
+  font-family: var(--f-head, 'Bricolage Grotesque', sans-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--cream, #FFF8E1);
+  margin-bottom: 8px;
+}
+
+.gf-placeholder-text {
+  font-size: 13.5px;
+  color: var(--sub, #A9C7B8);
+  max-width: 380px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.gf-placeholder-code {
+  font-family: var(--f-mono, monospace);
+  font-size: 11.5px;
+  color: var(--mint, #8CF7C5);
+  background: rgba(25, 214, 138, 0.08);
+  border: 1px solid rgba(25, 214, 138, 0.24);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+/* Auto-hide the placeholder when any Gravity Form is mounted inside #gravity-form-mount */
+#gravity-form-mount:has(.gform_wrapper) .gform-mount-placeholder,
+#gravity-form-mount:has(form) .gform-mount-placeholder,
+#gravity-form-mount .gform_wrapper ~ .gform-mount-placeholder {
+  display: none !important;
+}
+
+/* 3. Gravity Forms Headings */
+.gform_wrapper .gform_heading {
+  margin-bottom: 22px !important;
+}
+
+.gform_wrapper .gform_title {
+  font-family: var(--f-head, 'Bricolage Grotesque', sans-serif) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--cream, #FFF8E1) !important;
+  margin-bottom: 8px !important;
+  letter-spacing: -0.015em !important;
+}
+
+.gform_wrapper .gform_description {
+  font-size: 13.5px !important;
+  color: var(--sub, #A9C7B8) !important;
+  line-height: 1.55 !important;
+  margin-bottom: 16px !important;
+}
+
+.gform_wrapper .gform_required_legend {
+  font-size: 12px !important;
+  color: var(--sub, #A9C7B8) !important;
+  opacity: 0.8 !important;
+  margin-bottom: 14px !important;
+}
+
+/* 4. Field Structure & Grid */
+.gform_wrapper .gform_fields {
+  display: grid !important;
+  gap: 16px !important;
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.gform_wrapper .gfield {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+/* Responsive Columns */
+@media (min-width: 641px) {
+  .gform_wrapper .gfield--width-half,
+  .gform_wrapper .gf_left_half,
+  .gform_wrapper .gf_right_half {
+    grid-column: span 6 / span 12 !important;
+  }
+
+  .gform_wrapper .gfield--width-third,
+  .gform_wrapper .gf_left_third,
+  .gform_wrapper .gf_middle_third,
+  .gform_wrapper .gf_right_third {
+    grid-column: span 4 / span 12 !important;
+  }
+
+  .gform_wrapper .gfield--width-full {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* 5. Field Labels & Asterisks */
+.gform_wrapper .gfield_label,
+.gform_wrapper .gform-field-label,
+.gform_wrapper label.gfield_label {
+  display: block !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: var(--cream, #FFF8E1) !important;
+  margin-bottom: 6px !important;
+  letter-spacing: 0.01em !important;
+}
+
+.gform_wrapper .gfield_required,
+.gform_wrapper .gfield_required_asterisk {
+  color: var(--gold, #FFC83A) !important;
+  margin-left: 4px !important;
+  font-weight: 700 !important;
+}
+
+.gform_wrapper .gfield_description,
+.gform_wrapper .gsection_description,
+.gform_wrapper .instruction {
+  font-size: 12.5px !important;
+  color: var(--sub, #A9C7B8) !important;
+  margin-top: 5px !important;
+  line-height: 1.45 !important;
+}
+
+/* Complex sub-labels (e.g. First / Last name) */
+.gform_wrapper .ginput_complex {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.gform_wrapper .ginput_complex label {
+  display: block !important;
+  font-size: 12px !important;
+  color: var(--sub, #A9C7B8) !important;
+  margin-top: 4px !important;
+}
+
+/* 6. Inputs, Textareas, Selects */
+.gform_wrapper input[type="text"],
+.gform_wrapper input[type="email"],
+.gform_wrapper input[type="tel"],
+.gform_wrapper input[type="url"],
+.gform_wrapper input[type="number"],
+.gform_wrapper input[type="password"],
+.gform_wrapper input[type="date"],
+.gform_wrapper textarea,
+.gform_wrapper select,
+.gform_wrapper .ginput_container input,
+.gform_wrapper .ginput_container textarea,
+.gform_wrapper .ginput_container select {
+  width: 100% !important;
+  background: rgba(2, 14, 9, 0.55) !important;
+  border: 1px solid var(--line, rgba(120, 240, 190, 0.16)) !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  color: var(--cream, #FFF8E1) !important;
+  font-family: var(--f-body, 'Google Sans Flex', system-ui, sans-serif) !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.gform_wrapper input::placeholder,
+.gform_wrapper textarea::placeholder {
+  color: #7fa08f !important;
+  opacity: 1 !important;
+}
+
+.gform_wrapper input:hover,
+.gform_wrapper textarea:hover,
+.gform_wrapper select:hover {
+  border-color: rgba(25, 214, 138, 0.45) !important;
+  background: rgba(2, 14, 9, 0.65) !important;
+}
+
+.gform_wrapper input:focus,
+.gform_wrapper textarea:focus,
+.gform_wrapper select:focus {
+  border-color: var(--gold, #FFC83A) !important;
+  background: rgba(3, 20, 13, 0.85) !important;
+  box-shadow: 0 0 0 3px rgba(255, 200, 58, 0.18) !important;
+  outline: none !important;
+}
+
+.gform_wrapper textarea {
+  min-height: 120px !important;
+  resize: vertical !important;
+}
+
+/* Custom Select Dropdowns */
+.gform_wrapper select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FFC83A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  padding-right: 38px !important;
+  cursor: pointer !important;
+}
+
+.gform_wrapper select option {
+  background-color: #08291d !important;
+  color: var(--cream, #FFF8E1) !important;
+  padding: 10px 14px !important;
+}
+
+/* 7. Checkboxes and Radio Buttons */
+.gform_wrapper .gfield_checkbox,
+.gform_wrapper .gfield_radio {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin-top: 6px !important;
+}
+
+.gform_wrapper .gchoice {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+}
+
+.gform_wrapper .gchoice input[type="checkbox"],
+.gform_wrapper .gchoice input[type="radio"] {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  accent-color: var(--gold, #FFC83A) !important;
+  cursor: pointer !important;
+}
+
+.gform_wrapper .gchoice label {
+  font-size: 13.5px !important;
+  color: var(--cream, #FFF8E1) !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  line-height: 1.4 !important;
+}
+
+/* 8. Section Dividers */
+.gform_wrapper .gsection {
+  border-bottom: 1px solid var(--line, rgba(120, 240, 190, 0.16)) !important;
+  padding-bottom: 12px !important;
+  margin: 18px 0 10px !important;
+}
+
+.gform_wrapper .gsection_title {
+  font-family: var(--f-head, 'Bricolage Grotesque', sans-serif) !important;
+  font-size: 16.5px !important;
+  font-weight: 700 !important;
+  color: var(--gold, #FFC83A) !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* 9. File Upload */
+.gform_wrapper .gform_fileupload_multifile,
+.gform_wrapper .gform_drop_area {
+  border: 1.5px dashed var(--line, rgba(120, 240, 190, 0.2)) !important;
+  border-radius: 12px !important;
+  background: rgba(2, 14, 9, 0.4) !important;
+  padding: 24px 18px !important;
+  text-align: center !important;
+  color: var(--sub, #A9C7B8) !important;
+  transition: all 0.2s ease !important;
+}
+
+.gform_wrapper .gform_drop_area:hover {
+  border-color: var(--gold, #FFC83A) !important;
+  background: rgba(255, 200, 58, 0.05) !important;
+}
+
+/* 10. Footer and Submit Button */
+.gform_wrapper .gform_footer,
+.gform_wrapper .gform_page_footer {
+  margin-top: 18px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.gform_wrapper .gform_button,
+.gform_wrapper .gform_footer input[type="submit"],
+.gform_wrapper .gform_footer button[type="submit"],
+.gform_wrapper .gform_next_button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #FFD860, #FFB020) !important;
+  color: var(--ink, #1A1300) !important;
+  box-shadow: 0 8px 24px rgba(255, 184, 32, 0.28) !important;
+  font-family: var(--f-body, 'Google Sans Flex', system-ui, sans-serif) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 14px 26px !important;
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  cursor: pointer !important;
+  transition: transform 0.18s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+  text-decoration: none !important;
+  min-width: 140px !important;
+}
+
+.gform_wrapper .gform_button:hover,
+.gform_wrapper .gform_footer input[type="submit"]:hover,
+.gform_wrapper .gform_footer button[type="submit"]:hover,
+.gform_wrapper .gform_next_button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 14px 34px rgba(255, 184, 32, 0.45) !important;
+}
+
+.gform_wrapper .gform_button:active,
+.gform_wrapper .gform_footer input[type="submit"]:active,
+.gform_wrapper .gform_footer button[type="submit"]:active {
+  transform: translateY(0) !important;
+}
+
+/* Previous Step Button */
+.gform_wrapper .gform_previous_button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--line, rgba(120, 240, 190, 0.16)) !important;
+  color: var(--cream, #FFF8E1) !important;
+  border-radius: 12px !important;
+  padding: 13px 22px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.gform_wrapper .gform_previous_button:hover {
+  border-color: var(--em, #19D68A) !important;
+  background: rgba(25, 214, 138, 0.1) !important;
+}
+
+/* Save and Continue Later */
+.gform_wrapper .gform_save_link {
+  font-size: 13px !important;
+  color: var(--gold, #FFC83A) !important;
+  text-decoration: underline !important;
+  margin-left: 10px !important;
+}
+
+/* 11. Ajax Spinner / Loading Indicator */
+.gform_wrapper .gform_ajax_spinner,
+.gform_wrapper .gform-loader {
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  border: 2.5px solid rgba(255, 200, 58, 0.2) !important;
+  border-top-color: var(--gold, #FFC83A) !important;
+  border-radius: 50% !important;
+  animation: gf-spin 0.8s linear infinite !important;
+  margin-left: 10px !important;
+  vertical-align: middle !important;
+}
+
+@keyframes gf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 12. Validation & Error States */
+.gform_wrapper .gform_validation_errors,
+.gform_wrapper .validation_error {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  color: #fca5a5 !important;
+  font-size: 13.5px !important;
+  margin-bottom: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.gform_wrapper .gfield_error input,
+.gform_wrapper .gfield_error textarea,
+.gform_wrapper .gfield_error select {
+  border-color: #EF4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
+}
+
+.gform_wrapper .gfield_validation_message,
+.gform_wrapper .validation_message {
+  color: #fca5a5 !important;
+  font-size: 12.5px !important;
+  margin-top: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* 13. Submission Confirmation & Success */
+.gform_confirmation_wrapper,
+.gform_confirmation_message {
+  background: rgba(25, 214, 138, 0.1) !important;
+  border: 1px solid rgba(25, 214, 138, 0.35) !important;
+  border-radius: 16px !important;
+  padding: 28px 24px !important;
+  color: var(--mint, #8CF7C5) !important;
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  text-align: left !important;
+}
+
+.gform_confirmation_message h3,
+.gform_confirmation_message strong {
+  color: var(--cream, #FFF8E1) !important;
+  font-family: var(--f-head, 'Bricolage Grotesque', sans-serif) !important;
+  font-size: 18px !important;
+  display: block !important;
+  margin-bottom: 8px !important;
+}
+
+/* 14. Multi-Page Steps */
+.gform_wrapper .gf_page_steps {
+  display: flex !important;
+  gap: 12px !important;
+  margin-bottom: 24px !important;
+  border-bottom: 1px solid var(--line, rgba(120, 240, 190, 0.16)) !important;
+  padding-bottom: 14px !important;
+  overflow-x: auto !important;
+}
+
+.gform_wrapper .gf_step {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  color: var(--sub, #A9C7B8) !important;
+}
+
+.gform_wrapper .gf_step_active {
+  color: var(--gold, #FFC83A) !important;
+  font-weight: 700 !important;
+}
+
+.gform_wrapper .gf_step_number {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--cream, #FFF8E1) !important;
+}
+
+.gform_wrapper .gf_step_active .gf_step_number {
+  background: var(--gold, #FFC83A) !important;
+  color: var(--ink, #1A1300) !important;
+}

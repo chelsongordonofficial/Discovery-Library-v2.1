@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
+import RippleButton from '../components/ui/RippleButton';
+import SpecularButton from '../components/ui/SpecularButton';
+import { useWpData } from '../context/WpContext';
 
-const PAST_RECORDINGS = [
+const FALLBACK_RECORDINGS = [
   {
     id: 'rec-1',
     title: 'Referencing Clinic: Mastering In-Text Citations & Quotations',
@@ -12,6 +15,7 @@ const PAST_RECORDINGS = [
     facilitator: 'Dr. Evelyn Ward',
     category: 'Referencing',
     desc: 'Deep dive into direct quotations versus paraphrasing, block quotes, and multi-author citation rules under APA 7th.',
+    url: 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Microsoft%20Word%20Training%20(1).mp4',
   },
   {
     id: 'rec-2',
@@ -21,6 +25,7 @@ const PAST_RECORDINGS = [
     facilitator: 'Rachel Green',
     category: 'VET Compliance',
     desc: 'Understanding rules of evidence, authenticity, and student intervention thresholds for accredited qualifications.',
+    url: 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Microsoft%20Word%20Training%20(1).mp4',
   },
   {
     id: 'rec-3',
@@ -30,29 +35,39 @@ const PAST_RECORDINGS = [
     facilitator: 'Marcus Tan',
     category: 'Research Skills',
     desc: 'How to use Google Scholar, VOCEDplus, and Boolean operators to locate high-impact academic journal papers.',
-  },
-  {
-    id: 'rec-4',
-    title: 'Numeracy Clinic: Dosage Calculations & Workshop Math',
-    date: '29 Aug 2026',
-    duration: '60 mins',
-    facilitator: 'Dr. Evelyn Ward',
-    category: 'Numeracy Support',
-    desc: 'Step-by-step breakdown of practical assessment math, conversion formulas, and percentage calculations.',
-  },
-  {
-    id: 'rec-5',
-    title: 'Generative AI Guidelines for Vocational Students',
-    date: '22 Aug 2026',
-    duration: '45 mins',
-    facilitator: 'Marcus Tan',
-    category: 'AI Ethics',
-    desc: 'Clear boundaries on ethical prompt engineering, disclosure statements, and avoiding contract cheating.',
+    url: 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Microsoft%20Word%20Training%20(1).mp4',
   },
 ];
 
 export default function RecordingsPage({ onNotify }) {
+  const { previousSessions, wpVideos } = useWpData();
   const [activeRec, setActiveRec] = useState(null);
+  const [search, setSearch] = useState('');
+
+  const allRecordings = useMemo(() => {
+    // Live WP previous sessions with video recordings (e.g. Academic Misconduct Policy)
+    const liveItems = (previousSessions || []).map((s) => ({
+      id: `wp-prev-${s.id}`,
+      title: s.title,
+      date: `${s.d} ${s.mon} ${s.rawDate ? s.rawDate.split('-')[0] : '2026'}`,
+      duration: '45 mins',
+      facilitator: s.facilitator || 'Discovery Library Academic Lead',
+      category: s.type || 'Compliance Briefing',
+      desc: 'Recorded live workshop broadcast including student Q&A and practical case studies.',
+      url: s.video_url || 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Academic%20Misconduct%20Policy%20and%20Procedure%20V3.0%20Student%20Training%20Video.mp4',
+      isWp: !!s.isWp,
+    }));
+
+    return [...liveItems, ...FALLBACK_RECORDINGS];
+  }, [previousSessions]);
+
+  const filtered = useMemo(() => {
+    return allRecordings.filter((r) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return r.title.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q) || r.category.toLowerCase().includes(q);
+    });
+  }, [allRecordings, search]);
 
   const handlePlay = (rec) => {
     setActiveRec(rec);
@@ -62,146 +77,124 @@ export default function RecordingsPage({ onNotify }) {
   return (
     <div className="page page-recordings" style={{ paddingTop: 40, paddingBottom: 100 }}>
       <div className="wrap">
+        {/* Clean Back Button - No random pill */}
+        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+          <RippleButton
+            as={Link}
+            to="/"
+            className="btn btn-ghost btn-sm"
+            rippleColor="var(--em)"
+          >
+            <Icon name="arrowLeft" />
+            Back to Home
+          </RippleButton>
+        </div>
+
         <Reveal className="sh">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Link to="/" className="btn btn-ghost btn-sm">
-              <Icon name="arrow" style={{ transform: 'rotate(180deg)', width: 16, height: 16 }} /> Back to Home
-            </Link>
-            <span className="chip" style={{ opacity: 1, animation: 'none' }}>
-              <Icon name="record" style={{ width: 14, height: 14, color: 'var(--mint)' }} />
-              On-Demand Workshop Archive
-            </span>
-          </div>
-          <h2>Session Recordings Archive</h2>
+          <h2>Session Recordings <span className="hl-word hl-gold">Archive</span></h2>
           <p>
-            Missed a live session or need to review a concept? Stream all past clinics, workshops, and briefings anytime at your own pace.
+            Catch up on previous live referencing clinics, compliance briefings, and academic mentoring workshops anytime.
           </p>
         </Reveal>
 
-        <div style={{ display: 'grid', gap: 20 }}>
-          {PAST_RECORDINGS.map((rec, i) => (
-            <Reveal key={rec.id} delay={i * 0.08}>
+        {/* Video Player Modal */}
+        {activeRec && (
+          <div
+            className="backdrop show"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => { if (e.target === e.currentTarget) setActiveRec(null); }}
+          >
+            <div className="modal" style={{ width: 760, maxWidth: '95vw', padding: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div>
+                  <span className="typetag" style={{ marginBottom: 4 }}>{activeRec.category}</span>
+                  <h3 style={{ fontSize: 18, color: 'var(--cream)', margin: 0 }}>
+                    {activeRec.title}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveRec(null)}
+                  style={{ color: 'var(--sub)', padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 6 }}
+                >
+                  Close
+                </button>
+              </div>
+
+              <video
+                src={activeRec.url}
+                controls
+                autoPlay
+                style={{ width: '100%', borderRadius: 12, maxHeight: '60vh', background: '#000' }}
+              />
+
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', color: 'var(--sub)', fontSize: 13.5 }}>
+                <span>Facilitated by {activeRec.facilitator}</span>
+                <span>Broadcast date: {activeRec.date}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search */}
+        <Reveal className="glass panel" style={{ marginBottom: 32, padding: '16px 20px' }}>
+          <div className="sbox" style={{ margin: 0 }}>
+            <Icon name="search" />
+            <input
+              type="text"
+              placeholder="Search past recordings by topic or presenter..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </Reveal>
+
+        {/* Grid of Recordings */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          {filtered.map((rec, i) => (
+            <Reveal key={rec.id + i} delay={i * 0.05}>
               <div
                 className="glass panel"
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(180px, 240px) 1fr auto',
-                  gap: 24,
-                  alignItems: 'center',
                   padding: 22,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  textAlign: 'left',
+                  border: rec.isWp ? '1px solid rgba(25, 214, 138, 0.4)' : undefined,
                 }}
               >
-                <div
-                  className="player"
-                  style={{
-                    height: 120,
-                    borderRadius: 12,
-                    cursor: 'pointer',
-                    background: 'radial-gradient(circle at 60% 40%, rgba(140,247,197,0.25), rgba(6,35,26,0.95))',
-                  }}
-                  onClick={() => handlePlay(rec)}
-                >
-                  <span className="pl" style={{ width: 44, height: 44, fontSize: 18 }}>
-                    <Icon name="play" />
-                  </span>
-                  <span className="cap">{rec.duration}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span className="typetag">{rec.category}</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--sub)' }}>{rec.duration}</span>
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
-                    <span className="typetag" style={{ borderColor: 'rgba(140,247,197,0.3)', color: 'var(--mint)' }}>
-                      {rec.category}
-                    </span>
-                    <span style={{ fontSize: 13, color: 'var(--sub)' }}>Recorded on {rec.date}</span>
-                  </div>
-                  <h3 style={{ fontSize: 19, marginBottom: 6 }}>{rec.title}</h3>
-                  <p style={{ fontSize: 13.5, color: 'var(--sub)' }}>{rec.desc}</p>
-                  <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--gold)' }}>
-                    Instructor: {rec.facilitator}
-                  </div>
-                </div>
+                <h3 style={{ fontSize: 17, marginBottom: 8, color: 'var(--cream)', lineHeight: 1.3 }}>
+                  {rec.title}
+                </h3>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-                  <button type="button" className="btn btn-em" onClick={() => handlePlay(rec)}>
-                    <Icon name="play" style={{ width: 14, height: 14 }} /> Watch Recording
-                  </button>
-                  <button
+                <p style={{ fontSize: 13.5, color: 'var(--sub)', flexGrow: 1, marginBottom: 18, lineHeight: 1.5 }}>
+                  {rec.desc}
+                </p>
+
+                <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--sub)' }}>{rec.date}</span>
+                  <SpecularButton
+                    as="button"
                     type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      if (onNotify) onNotify(`Session slides for "${rec.title}" downloaded.`);
-                    }}
+                    onClick={() => handlePlay(rec)}
+                    className="btn btn-gold btn-sm"
+                    radius={10}
                   >
-                    Slides PDF
-                  </button>
+                    <Icon name="play" /> Watch Recording
+                  </SpecularButton>
                 </div>
               </div>
             </Reveal>
           ))}
         </div>
       </div>
-
-      {/* Playback Modal */}
-      {activeRec && (
-        <div className="backdrop show" role="dialog" aria-modal="true" onClick={() => setActiveRec(null)}>
-          <div className="modal" style={{ width: 720 }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span className="typetag">{activeRec.category} · {activeRec.duration}</span>
-              <button type="button" className="copy" onClick={() => setActiveRec(null)}>Close</button>
-            </div>
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>{activeRec.title}</h3>
-            <p style={{ fontSize: 13, color: 'var(--sub)', marginBottom: 16 }}>
-              Facilitated by {activeRec.facilitator} · Recorded {activeRec.date}
-            </p>
-
-            <div
-              style={{
-                aspectRatio: '16/9',
-                background: '#041810',
-                borderRadius: 14,
-                border: '1px solid var(--line)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  background: 'var(--em)',
-                  color: '#01160e',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Icon name="play" style={{ width: 28, height: 28 }} />
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Streaming Full Recording</span>
-              <span style={{ fontSize: 12, color: 'var(--sub)' }}>Archived Cloud Stream (1080p 60fps)</span>
-            </div>
-
-            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <Link to="/referencing" className="btn btn-ghost" onClick={() => setActiveRec(null)}>
-                Cite This Lecture
-              </Link>
-              <button
-                type="button"
-                className="btn btn-gold"
-                onClick={() => {
-                  if (onNotify) onNotify('Full transcript (.vtt/.txt) downloaded.');
-                }}
-              >
-                Download Transcript
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

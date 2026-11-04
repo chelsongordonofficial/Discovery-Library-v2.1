@@ -1,0 +1,447 @@
+/**
+ * WordPress REST API Integration Service for Discovery Library
+ * Domain: https://discoverylibrary.com.au/
+ * Custom Post Types (CPTs):
+ *  - Training Videos: /wp-json/wp/v2/training_video
+ *  - Upcoming Sessions: /wp-json/wp/v2/upcoming_session
+ *  - Useful Links & Videos: /wp-json/wp/v2/useful_link_video
+ *  - Newsletters: /wp-json/wp/v2/newsletter
+ */
+
+import {
+  FALLBACK_UPCOMING_SESSIONS,
+  FALLBACK_PREVIOUS_SESSIONS,
+  SEARCH_VIDEOS,
+  SITE_URLS,
+} from '../data/index.js';
+
+export const WP_DOMAIN = 'https://discoverylibrary.com.au';
+const CACHE_KEY = 'discovery_library_wp_cache_v2';
+
+export const WP_ENDPOINTS = {
+  trainingVideos: `${WP_DOMAIN}/wp-json/wp/v2/training_video`,
+  upcomingSessions: `${WP_DOMAIN}/wp-json/wp/v2/upcoming_session`,
+  usefulLinks: `${WP_DOMAIN}/wp-json/wp/v2/useful_link_video`,
+  newsletters: `${WP_DOMAIN}/wp-json/wp/v2/newsletter`,
+};
+
+/**
+ * Reads cached WP data synchronously from localStorage to eliminate loading flash
+ */
+export function getStoredWpCache() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Cache valid for 30 minutes
+    if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+      return parsed.data;
+    }
+  } catch {
+    // Ignore cache parse errors
+  }
+  return null;
+}
+
+/**
+ * Saves WP data to localStorage
+ */
+export function setStoredWpCache(data) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        timestamp: Date.now(),
+        data,
+      })
+    );
+  } catch {
+    // Ignore quota errors
+  }
+}
+
+/**
+ * Decodes HTML entities commonly returned by WordPress REST API
+ */
+export function decodeHtml(html) {
+  if (!html) return '';
+  if (typeof document !== 'undefined') {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value;
+  }
+  return html
+    .replace(/&#038;|&amp;/g, '&')
+    .replace(/&#8217;|&#39;/g, "'")
+    .replace(/&#8220;|&#8221;|&quot;/g, '"')
+    .replace(/&#8211;/g, '–')
+    .replace(/&#8212;/g, '—')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+/**
+ * Determines whether a session is upcoming (today or in the future)
+ * or previous (strictly in the past before today).
+ */
+export function isSessionUpcoming(session, now = new Date()) {
+  if (!session) return false;
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+  // Check rawDate string (YYYY-MM-DD)
+  if (session.rawDate) {
+    const parts = session.rawDate.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const sessionDayStart = new Date(y, m, d, 0, 0, 0, 0);
+
+      // If the day is strictly before today -> previous / past
+      if (sessionDayStart.getTime() < todayStart.getTime()) {
+        return false;
+      }
+      // If the day is strictly after today -> upcoming / future
+      if (sessionDayStart.getTime() > todayStart.getTime()) {
+        return true;
+      }
+    }
+  }
+
+  // If the session is scheduled for today, check time if available
+  if (session.iso) {
+    const sDate = new Date(session.iso);
+    if (!isNaN(sDate.getTime())) {
+      const sDay = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0, 0);
+      if (sDay.getTime() < todayStart.getTime()) return false;
+      if (sDay.getTime() > todayStart.getTime()) return true;
+      // If date is today, check if timestamp has passed
+      return sDate.getTime() >= now.getTime();
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Normalizes an upcoming_session CPT item from WordPress
+ */
+export function normalizeUpcomingSession(item) {
+  if (!item) return null;
+
+  const title = decodeHtml(item.title?.rendered || 'Session');
+  const meta = item.meta || {};
+  const dateStr = meta.session_date || (item.date ? item.date.split('T')[0] : '');
+  const timeStr = meta.session_time || '2:00 PM – 3:30 PM AEST';
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  let d = '01';
+  let mon = 'Jan';
+  let wd = 'Mon';
+  let iso = new Date().toISOString();
+
+  if (dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const dayNum = parseInt(parts[2], 10);
+
+      // Try to parse hours and minutes from timeStr if present
+      let hours = 14;
+      let minutes = 0;
+      if (timeStr) {
+        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (match) {
+          let h = parseInt(match[1], 10);
+          const m = parseInt(match[2], 10);
+          const ampm = match[3] ? match[3].toUpperCase() : null;
+          if (ampm === 'PM' && h < 12) h += 12;
+          if (ampm === 'AM' && h === 12) h = 0;
+          hours = h;
+          minutes = m;
+        }
+      }
+
+      const dateObj = new Date(year, monthIdx, dayNum, hours, minutes, 0);
+      d = String(dayNum).padStart(2, '0');
+      mon = months[monthIdx] || 'Aug';
+      wd = days[dateObj.getDay()] || 'Fri';
+      iso = dateObj.toISOString();
+    }
+  }
+
+  // Determine type and category tag based on title keywords
+  const lower = title.toLowerCase();
+  let type = 'Live session';
+  let cat = 'live';
+
+  if (lower.includes('workshop')) {
+    type = 'Workshop';
+    cat = 'workshop';
+  } else if (lower.includes('webinar')) {
+    type = 'Webinar';
+    cat = 'webinar';
+  } else if (lower.includes('clinic')) {
+    type = 'Clinic';
+    cat = 'live';
+  } else if (lower.includes('policy') || lower.includes('procedure') || lower.includes('briefing') || lower.includes('standard')) {
+    type = 'Information Briefing';
+    cat = 'live';
+  }
+
+  const sessionObj = {
+    id: item.id,
+    cat,
+    type,
+    title,
+    d,
+    mon,
+    wd,
+    time: timeStr,
+    iso,
+    rawDate: dateStr,
+    video_url: meta.video_url || '',
+    link: item.link || SITE_URLS.sessions,
+    isWp: true,
+  };
+
+  const isUpcoming = isSessionUpcoming(sessionObj);
+  sessionObj.isUpcoming = isUpcoming;
+  sessionObj.isPast = !isUpcoming;
+
+  return sessionObj;
+}
+
+/**
+ * Normalizes a training_video CPT item from WordPress
+ */
+export function normalizeTrainingVideo(item) {
+  if (!item) return null;
+  const title = decodeHtml(item.title?.rendered || 'Training Video');
+  const meta = item.meta || {};
+  const description = decodeHtml(meta.description || '');
+
+  return {
+    id: item.id,
+    title,
+    desc: description || 'Comprehensive instructional training video for VET students and staff.',
+    video_url: meta.video_url || '',
+    quiz_link: meta.quiz_link || '',
+    link: item.link || SITE_URLS.videos,
+    isWp: true,
+  };
+}
+
+/**
+ * Normalizes a useful_link_video CPT item from WordPress
+ */
+export function normalizeUsefulLink(item) {
+  if (!item) return null;
+  const title = decodeHtml(item.title?.rendered || 'Useful Link & Resource');
+  const meta = item.meta || {};
+
+  return {
+    id: item.id,
+    title,
+    desc: decodeHtml(meta.description || meta.desc || ''),
+    url: meta.url || meta.link || item.link || SITE_URLS.links,
+    isWp: true,
+  };
+}
+
+/**
+ * Normalizes a newsletter CPT item from WordPress
+ */
+export function normalizeNewsletter(item) {
+  if (!item) return null;
+  const title = decodeHtml(item.title?.rendered || 'Discovery Library Newsletter');
+  const meta = item.meta || {};
+
+  return {
+    id: item.id,
+    title,
+    date: item.date ? item.date.split('T')[0] : '',
+    pdf_url: meta.pdf_url || meta.file_url || item.link || SITE_URLS.newsletter,
+    isWp: true,
+  };
+}
+
+/**
+ * Fetch with timeout helper
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
+/**
+ * Fetch Upcoming Sessions from WordPress
+ */
+export async function fetchUpcomingSessions() {
+  try {
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.upcomingSessions}?per_page=50&_embed=true`);
+    if (!res.ok) throw new Error(`WP upcoming_session status ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(normalizeUpcomingSession).filter(Boolean);
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Discovery Library] Failed to fetch upcoming_session from WP, using fallback:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch Training Videos from WordPress
+ */
+export async function fetchTrainingVideos() {
+  try {
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.trainingVideos}?per_page=50&_embed=true`);
+    if (!res.ok) throw new Error(`WP training_video status ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(normalizeTrainingVideo).filter(Boolean);
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Discovery Library] Failed to fetch training_video from WP, using fallback:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch Useful Links & Videos from WordPress
+ */
+export async function fetchUsefulLinks() {
+  try {
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.usefulLinks}?per_page=50&_embed=true`);
+    if (!res.ok) throw new Error(`WP useful_link_video status ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(normalizeUsefulLink).filter(Boolean);
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Discovery Library] Failed to fetch useful_link_video from WP, using fallback:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch Newsletters from WordPress
+ */
+export async function fetchNewsletters() {
+  try {
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.newsletters}?per_page=50&_embed=true`);
+    if (!res.ok) throw new Error(`WP newsletter status ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(normalizeNewsletter).filter(Boolean);
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Discovery Library] Failed to fetch newsletter from WP, using fallback:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Partitions sessions into upcoming (today or future) and previous (past before today)
+ */
+export function partitionSessions(sessions = []) {
+  const upcoming = [];
+  const previous = [];
+
+  sessions.forEach((s) => {
+    if (isSessionUpcoming(s)) {
+      upcoming.push(s);
+    } else {
+      previous.push(s);
+    }
+  });
+
+  // Sort upcoming sessions ascending (soonest first)
+  upcoming.sort((a, b) => new Date(a.iso).getTime() - new Date(b.iso).getTime());
+
+  // Sort previous sessions descending (most recent past session first)
+  previous.sort((a, b) => new Date(b.iso).getTime() - new Date(a.iso).getTime());
+
+  return { upcoming, previous };
+}
+
+/**
+ * Returns merged upcoming sessions:
+ * Live WP upcoming sessions first, followed by fallback upcoming sessions to complete the UI.
+ * Excludes any past sessions.
+ */
+export function getMergedUpcomingSessions(wpSessions = []) {
+  const { upcoming: wpUpcoming } = partitionSessions(wpSessions);
+
+  if (!wpUpcoming || wpUpcoming.length === 0) {
+    return FALLBACK_UPCOMING_SESSIONS;
+  }
+
+  // Filter out any fallback session with identical title
+  const remainingFallbacks = FALLBACK_UPCOMING_SESSIONS.filter(
+    (fb) => !wpUpcoming.some((w) => w.title.toLowerCase() === fb.title.toLowerCase())
+  );
+
+  return [...wpUpcoming, ...remainingFallbacks];
+}
+
+/**
+ * Returns merged previous/past sessions:
+ * Live WP past sessions first (e.g. Academic Misconduct Policy, 2026-08-21),
+ * followed by fallback past sessions.
+ */
+export function getMergedPreviousSessions(wpSessions = []) {
+  const { previous: wpPrevious } = partitionSessions(wpSessions);
+
+  if (!wpPrevious || wpPrevious.length === 0) {
+    return FALLBACK_PREVIOUS_SESSIONS;
+  }
+
+  const remainingFallbacks = FALLBACK_PREVIOUS_SESSIONS.filter(
+    (fb) => !wpPrevious.some((w) => w.title.toLowerCase() === fb.title.toLowerCase())
+  );
+
+  return [...wpPrevious, ...remainingFallbacks];
+}
+
+/**
+ * Returns the single next upcoming session for the Hero chip.
+ * Guaranteed to be today or in the future.
+ */
+export function getNextUpcomingSession(upcomingSessions = []) {
+  if (upcomingSessions && upcomingSessions.length > 0) {
+    return upcomingSessions[0];
+  }
+  return FALLBACK_UPCOMING_SESSIONS[0];
+}
+
+/**
+ * Merges live WP training videos into the search videos format
+ */
+export function getMergedSearchVideos(wpVideos = []) {
+  if (!wpVideos || wpVideos.length === 0) {
+    return SEARCH_VIDEOS;
+  }
+
+  const liveSearchItems = wpVideos.map((v) => [v.title, v.desc, v.video_url]);
+  return [...liveSearchItems, ...SEARCH_VIDEOS];
+}

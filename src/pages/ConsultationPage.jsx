@@ -55,17 +55,21 @@ export default function ConsultationPage({ onNotify }) {
   return (
     <div className="page page-consultation" style={{ paddingTop: 40, paddingBottom: 100 }}>
       <div className="wrap">
+        {/* Clean Back Button - No random pill */}
+        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+          <RippleButton
+            as={Link}
+            to="/"
+            className="btn btn-ghost btn-sm"
+            rippleColor="var(--em)"
+          >
+            <Icon name="arrowLeft" />
+            Back to Home
+          </RippleButton>
+        </div>
+
         <Reveal className="sh">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Link to="/" className="btn btn-ghost btn-sm">
-              <Icon name="arrow" style={{ transform: 'rotate(180deg)', width: 16, height: 16 }} /> Back to Home
-            </Link>
-            <span className="chip" style={{ opacity: 1, animation: 'none' }}>
-              <span className="live" />
-              Free Academic Advising Services
-            </span>
-          </div>
-          <h2>Book a One-on-One Consultation</h2>
+          <h2>Book a One-on-One <span className="hl-word hl-gold">Consultation</span></h2>
           <p>
             Get dedicated 1-on-1 guidance with our qualified librarians and learning mentors. Available in person across all five campuses or online via Zoom.
           </p>

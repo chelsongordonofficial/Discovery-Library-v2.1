@@ -1,3 +1,5 @@
+@import './gravity-forms.css';
+
 :root{
   --bg:#03140d; --bg2:#06231a;
   --panel:rgba(8,42,30,.68); --panel-solid:#08291d;
@@ -756,3 +758,67 @@ footer.foot{position:relative;z-index:2;border-top:1px solid var(--line);margin-
   .reveal{opacity:1;transform:none;}
   html{scroll-behavior:auto;}
 }
+
+/* Universal Clean Horizontal Filter Bar & Tabs */
+.filter-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+
+.filter-bar .sbox {
+  margin: 0 !important;
+  flex: 1 1 260px !important;
+  min-width: 220px !important;
+}
+
+.filter-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.filter-tab {
+  position: relative !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  padding: 8px 16px !important;
+  border-radius: 100px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  border: 1px solid var(--line) !important;
+  color: #cfe6da !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.filter-tab:hover {
+  border-color: rgba(25, 214, 138, 0.5) !important;
+  color: var(--cream) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.filter-tab.active,
+.filter-tab.on {
+  background: linear-gradient(135deg, #FFD860, #FFB020) !important;
+  color: var(--ink) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(255, 200, 58, 0.3) !important;
+  font-weight: 700 !important;
+}
+

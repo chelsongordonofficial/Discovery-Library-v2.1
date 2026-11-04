@@ -1,7 +1,10 @@
 import Link from '../ui/Link';
 import Reveal from '../ui/Reveal';
 import RippleButton from '../ui/RippleButton';
-import { SESSIONS, SITE_URLS } from '../../data';
+import SpecularButton from '../ui/SpecularButton';
+import Icon from '../ui/Icon';
+import { SITE_URLS } from '../../data';
+import { useWpData } from '../../context/WpContext';
 
 function getSessionTypeIcon(type) {
   const norm = (type || '').toLowerCase();
@@ -37,8 +40,10 @@ function getSessionTypeIcon(type) {
 }
 
 function ComingUp() {
+  const { isInitialLoading, hasLiveUpcomingSessions, wpUpcomingSessions } = useWpData();
+
   return (
-    <section className="section">
+    <section className="section" id="upcoming-section">
       <div className="wrap">
         <Reveal className="sh">
           <h2>
@@ -46,26 +51,101 @@ function ComingUp() {
           </h2>
           <p>Reserve your spot and set a reminder so you don’t miss a session.</p>
         </Reveal>
-        <Reveal className="glass upnext">
-          {SESSIONS.slice(0, 3).map((s, i) => (
-            <Reveal key={s.title} className={`uprow c-${s.cat}`} delay={i * 0.1}>
-              <div className="datebadge"><b>{s.d}</b><span>{s.mon}</span></div>
-              <div className="uprow-info" style={{ textAlign: 'left', justifySelf: 'start' }}>
-                <h3 style={{ textAlign: 'left' }}>{s.title}</h3>
-                <div className="m" style={{ textAlign: 'left' }}>{s.wd} · {s.time}</div>
+
+        {isInitialLoading ? (
+          /* Subtle skeleton while initial REST response settles */
+          <div className="glass upnext" style={{ opacity: 0.6 }}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="uprow" style={{ minHeight: 76, alignItems: 'center' }}>
+                <div className="datebadge" style={{ animation: 'pulse 1.6s infinite ease-in-out' }}>
+                  <b style={{ opacity: 0.3 }}>--</b>
+                  <span style={{ opacity: 0.3 }}>---</span>
+                </div>
+                <div className="uprow-info" style={{ textAlign: 'left', justifySelf: 'start', width: '100%' }}>
+                  <div style={{ height: 16, width: '60%', background: 'rgba(255,255,255,0.08)', borderRadius: 4, marginBottom: 8 }} />
+                  <div style={{ height: 12, width: '35%', background: 'rgba(255,255,255,0.04)', borderRadius: 4 }} />
+                </div>
               </div>
-              <span className="typetag">
-                {getSessionTypeIcon(s.type)}
-                <span>{s.type}</span>
-              </span>
+            ))}
+          </div>
+        ) : hasLiveUpcomingSessions ? (
+          /* Live upcoming sessions from WordPress */
+          <>
+            <Reveal className="glass upnext">
+              {wpUpcomingSessions.slice(0, 3).map((s, i) => (
+                <Reveal key={s.id || s.title} className={`uprow c-${s.cat}`} delay={i * 0.1}>
+                  <div className="datebadge"><b>{s.d}</b><span>{s.mon}</span></div>
+                  <div className="uprow-info" style={{ textAlign: 'left', justifySelf: 'start' }}>
+                    <h3 style={{ textAlign: 'left' }}>{s.title}</h3>
+                    <div className="m" style={{ textAlign: 'left' }}>{s.wd} · {s.time}</div>
+                  </div>
+                  <span className="typetag">
+                    {getSessionTypeIcon(s.type)}
+                    <span>{s.type}</span>
+                  </span>
+                </Reveal>
+              ))}
             </Reveal>
-          ))}
-        </Reveal>
-        <Reveal style={{ marginTop: 26 }}>
-          <RippleButton as={Link} to={SITE_URLS.sessions} className="btn btn-ghost" rippleColor="var(--em)">
-            See all sessions
-          </RippleButton>
-        </Reveal>
+            <Reveal style={{ marginTop: 26 }}>
+              <RippleButton as={Link} to={SITE_URLS.sessions} className="btn btn-ghost" rippleColor="var(--em)">
+                See all sessions
+              </RippleButton>
+            </Reveal>
+          </>
+        ) : (
+          /* Coming Soon state when live data confirms no upcoming sessions exist */
+          <Reveal className="glass panel" delay={0.1}>
+            <div style={{ padding: '36px 24px', textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
+              <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: 'rgba(255, 200, 58, 0.12)',
+                border: '1px solid var(--line-gold)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}>
+                <Icon name="calendar" className="gold" />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <span className="chip" style={{ display: 'inline-flex' }}>
+                  <span className="live" style={{ background: 'var(--gold)' }} />
+                  Coming Soon
+                </span>
+              </div>
+              <h3 style={{ fontSize: 24, marginBottom: 10, color: 'var(--cream)' }}>
+                New Live Sessions Schedule Coming Soon
+              </h3>
+              <p style={{ color: 'var(--sub)', fontSize: 15.5, lineHeight: 1.6, marginBottom: 24 }}>
+                We are currently finalizing dates for upcoming live referencing clinics and academic integrity workshops. In the meantime, explore our library of recorded sessions or book a 1-on-1 consultation.
+              </p>
+              <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <SpecularButton
+                  as={Link}
+                  to={SITE_URLS.recordings}
+                  className="btn btn-gold"
+                  radius={12}
+                  lineColor="#ffffff"
+                  baseColor="#ffd860"
+                  intensity={1.2}
+                >
+                  <Icon name="record" />
+                  View Session Recordings
+                </SpecularButton>
+                <RippleButton
+                  as={Link}
+                  to={SITE_URLS.contact}
+                  className="btn btn-ghost"
+                  rippleColor="var(--em)"
+                >
+                  Book a Consultation
+                </RippleButton>
+              </div>
+            </div>
+          </Reveal>
+        )}
       </div>
     </section>
   );

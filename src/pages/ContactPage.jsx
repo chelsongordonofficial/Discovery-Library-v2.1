@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
+import RippleButton from '../components/ui/RippleButton';
 
 const CAMPUS_LOCATIONS = [
   { city: 'Brisbane', address: 'Level 2, 288 Edward Street, Brisbane QLD 4000', hours: 'Mon–Fri: 8:00 AM – 6:00 PM', email: 'library.bne@aibtglobal.edu.au' },
@@ -14,7 +15,7 @@ const CAMPUS_LOCATIONS = [
 const FAQS = [
   {
     q: 'How do I access peer-reviewed journals for free?',
-    a: 'Vocational students have free access to VOCEDplus, Google Scholar, ERIC, and DOAJ via the Useful Links page. No paywalls or external subscriptions are required.',
+    a: 'Vocational students have free access to VOCEDplus, Google Scholar, ERIC, and DOAJ via the Resources page. No paywalls or external subscriptions are required.',
   },
   {
     q: 'Can I use generative AI (e.g. ChatGPT) for my assessments?',
@@ -22,7 +23,7 @@ const FAQS = [
   },
   {
     q: 'How do I download session slides or recordings?',
-    a: 'Visit the Session Recordings page or Upcoming Sessions tab. Each event provides direct links to streaming video archives and downloadable companion slides.',
+    a: 'Visit the Sessions page and switch to Session Recordings. Each event provides direct links to streaming video archives and downloadable companion slides.',
   },
   {
     q: 'Are library consultations completely free?',
@@ -30,156 +31,133 @@ const FAQS = [
   },
 ];
 
-export default function ContactPage({ onNotify }) {
+export default function ContactPage() {
   const [openFaq, setOpenFaq] = useState(null);
-  const [contactMsg, setContactMsg] = useState({ name: '', email: '', message: '' });
-
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!contactMsg.name || !contactMsg.email) return;
-    if (onNotify) onNotify(`Thank you ${contactMsg.name}! Your enquiry has been received.`);
-    setContactMsg({ name: '', email: '', message: '' });
-  };
 
   return (
-    <div className="page page-contact" style={{ paddingTop: 40, paddingBottom: 100 }}>
+    <div className="page page-contact" style={{ paddingTop: 36, paddingBottom: 100 }}>
       <div className="wrap">
+        {/* Clean Back Button - No random pill */}
+        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+          <RippleButton
+            as={Link}
+            to="/"
+            className="btn btn-ghost btn-sm"
+            rippleColor="var(--em)"
+          >
+            <Icon name="arrowLeft" />
+            Back to Home
+          </RippleButton>
+        </div>
+
+        {/* Section Header with Disciplined Typography */}
         <Reveal className="sh">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Link to="/" className="btn btn-ghost btn-sm">
-              <Icon name="arrow" style={{ transform: 'rotate(180deg)', width: 16, height: 16 }} /> Back to Home
-            </Link>
-            <span className="chip" style={{ opacity: 1, animation: 'none' }}>
-              <Icon name="link" style={{ width: 14, height: 14, color: 'var(--gold)' }} />
-              Student Support Services
-            </span>
-          </div>
-          <h2>Contact Us & Campus Library Hubs</h2>
+          <h2>
+            Contact Us & Campus <span className="hl-word hl-gold">Hubs</span>
+          </h2>
           <p>
             Connect with our library staff in person at any campus location or submit an inquiry online.
           </p>
         </Reveal>
 
-        {/* Campuses Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 48 }}>
-          {CAMPUS_LOCATIONS.map((c, i) => (
-            <Reveal key={c.city} delay={i * 0.06}>
-              <div className="glass panel" style={{ height: '100%', padding: 22 }}>
-                <span className="typetag" style={{ marginBottom: 10, display: 'inline-block' }}>{c.city} Campus</span>
-                <h3 style={{ fontSize: 18, marginBottom: 6 }}>{c.city} Library Hub</h3>
-                <p style={{ fontSize: 13, color: 'var(--sub)', lineHeight: 1.5, marginBottom: 12 }}>{c.address}</p>
-                <div style={{ fontSize: 12.5, color: '#cfe3d8', display: 'grid', gap: 4 }}>
-                  <div>🕒 {c.hours}</div>
-                  <div>✉️ {c.email}</div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+        {/* 2-Column Contact Form & Campus Hubs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, marginBottom: 48 }}>
+          {/* Gravity Form Mount Section */}
+          <Reveal className="glass panel gform-mount-container" style={{ padding: '28px 30px', textAlign: 'left' }}>
+            <div className="gform-mount-header" style={{ marginBottom: 22 }}>
+              <h3 style={{ fontSize: 20, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
+                Book a Consultation or Send an Enquiry
+              </h3>
+              <p style={{ color: 'var(--sub)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+                Need help with APA 7th referencing, locating research journal papers, or navigating Moodle? Submit your enquiry below.
+              </p>
+            </div>
 
-        {/* Form and FAQ */}
-        <div className="split" style={{ alignItems: 'start' }}>
-          {/* Contact Form */}
-          <Reveal className="glass panel" style={{ padding: '32px 28px' }}>
-            <h3 style={{ fontSize: 22, marginBottom: 16 }}>Send a Library Inquiry</h3>
-            <form onSubmit={handleSend} style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>Name</label>
-                <div className="sbox">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Your name"
-                    value={contactMsg.name}
-                    onChange={(e) => setContactMsg({ ...contactMsg, name: e.target.value })}
-                    style={{ paddingLeft: 14 }}
-                  />
+            {/* Designated Mount Container for WordPress Gravity Forms */}
+            <div
+              id="gravity-form-mount"
+              className="gravity-form-mount-target"
+              data-gform-mount="true"
+            >
+              {/* Ready placeholder target — automatically concealed when Gravity Forms is rendered by WordPress */}
+              <div className="gform-mount-placeholder">
+                <div className="gf-placeholder-icon">
+                  <Icon name="mail" />
                 </div>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>Email</label>
-                <div className="sbox">
-                  <input
-                    type="email"
-                    required
-                    placeholder="Your student or staff email"
-                    value={contactMsg.email}
-                    onChange={(e) => setContactMsg({ ...contactMsg, email: e.target.value })}
-                    style={{ paddingLeft: 14 }}
-                  />
+                <div className="gf-placeholder-title">
+                  Gravity Form Mount Container
                 </div>
+                <p className="gf-placeholder-text">
+                  Target container configured for WordPress Gravity Forms. All fields, labels, inputs, validations, and submission buttons inherit the Discovery Library theme.
+                </p>
+                <code className="gf-placeholder-code">
+                  #gravity-form-mount
+                </code>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>Message / Request</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="How can our librarians help you today?"
-                  value={contactMsg.message}
-                  onChange={(e) => setContactMsg({ ...contactMsg, message: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(2,14,9,0.7)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 11,
-                    padding: '11px 14px',
-                    color: 'var(--cream)',
-                    font: '500 14px var(--f-body)',
-                  }}
-                />
-              </div>
-              <button type="submit" className="btn btn-gold btn-lg" style={{ justifyContent: 'center' }}>
-                Submit Enquiry
-              </button>
-            </form>
-          </Reveal>
-
-          {/* FAQs */}
-          <Reveal className="glass panel" delay={0.12} style={{ padding: '32px 28px' }}>
-            <h3 style={{ fontSize: 22, marginBottom: 16 }}>Frequently Asked Questions</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {FAQS.map((faq, idx) => {
-                const isOpen = openFaq === idx;
-                return (
-                  <div
-                    key={faq.q}
-                    style={{
-                      background: 'rgba(2,14,9,0.5)',
-                      borderRadius: 12,
-                      border: '1px solid var(--line)',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setOpenFaq(isOpen ? null : idx)}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '14px 16px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        fontWeight: 600,
-                        fontSize: 14,
-                        color: isOpen ? 'var(--gold)' : 'var(--cream)',
-                      }}
-                    >
-                      <span>{faq.q}</span>
-                      <span style={{ fontSize: 18, transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform .2s' }}>
-                        +
-                      </span>
-                    </button>
-                    {isOpen && (
-                      <div style={{ padding: '0 16px 16px', fontSize: 13.5, color: 'var(--sub)', lineHeight: 1.55 }}>
-                        {faq.a}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           </Reveal>
+
+          {/* Campus Locations */}
+          <div style={{ display: 'grid', gap: 14 }}>
+            {CAMPUS_LOCATIONS.map((loc, i) => (
+              <Reveal key={loc.city} delay={i * 0.05}>
+                <div className="glass panel" style={{ padding: '18px 22px', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <h4 style={{ fontSize: 16.5, margin: 0, color: 'var(--cream)', fontWeight: 600 }}>
+                      {loc.city} Campus Library
+                    </h4>
+                    <span style={{ fontSize: 12, color: 'var(--em)' }}>{loc.hours}</span>
+                  </div>
+                  <p style={{ fontSize: 13.5, color: 'var(--sub)', margin: '0 0 6px', lineHeight: 1.4 }}>
+                    {loc.address}
+                  </p>
+                  <a href={`mailto:${loc.email}`} style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none' }}>
+                    {loc.email}
+                  </a>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQs Section */}
+        <Reveal className="sh" style={{ marginBottom: 20 }}>
+          <h2>
+            Frequently Asked <span className="hl-word hl-em">Questions</span>
+          </h2>
+        </Reveal>
+
+        <div style={{ maxWidth: 840, margin: '0 auto', display: 'grid', gap: 12 }}>
+          {FAQS.map((faq, idx) => {
+            const isOpen = openFaq === idx;
+            return (
+              <Reveal key={faq.q} delay={idx * 0.04}>
+                <div
+                  className="glass panel"
+                  style={{
+                    padding: '18px 24px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setOpenFaq(isOpen ? null : idx)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ fontSize: 16, margin: 0, color: 'var(--cream)', fontWeight: 600 }}>
+                      {faq.q}
+                    </h4>
+                    <span style={{ color: 'var(--gold)', fontSize: 18, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                      ▾
+                    </span>
+                  </div>
+                  {isOpen && (
+                    <p style={{ marginTop: 12, fontSize: 14, color: 'var(--sub)', lineHeight: 1.55 }}>
+                      {faq.a}
+                    </p>
+                  )}
+                </div>
+              </Reveal>
+            );
+          })}
         </div>
       </div>
     </div>

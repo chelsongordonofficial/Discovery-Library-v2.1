@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
+import RippleButton from '../components/ui/RippleButton';
+import SpecularButton from '../components/ui/SpecularButton';
+import { useWpData } from '../context/WpContext';
 
-const NEWSLETTERS = [
+const FALLBACK_NEWSLETTERS = [
   {
     issue: 'Issue 42 — October 2026',
     title: 'Navigating New ASQA Evidence Standards & AI in Capstone Projects',
@@ -31,7 +34,24 @@ const NEWSLETTERS = [
 ];
 
 export default function NewsletterPage({ onNotify }) {
+  const { newsletters } = useWpData();
   const [subEmail, setSubEmail] = useState('');
+
+  const displayNewsletters = useMemo(() => {
+    if (newsletters && newsletters.length > 0) {
+      return newsletters.map((n, idx) => ({
+        issue: `Issue WP-${n.id || idx + 1}`,
+        title: n.title,
+        date: n.date || 'Recent Issue',
+        summary: 'Official newsletter publication from Discovery Library academic support team.',
+        readTime: '5 min read',
+        tags: ['Library Dispatch'],
+        pdf_url: n.pdf_url,
+        isWp: true,
+      }));
+    }
+    return FALLBACK_NEWSLETTERS;
+  }, [newsletters]);
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -41,84 +61,121 @@ export default function NewsletterPage({ onNotify }) {
   };
 
   return (
-    <div className="page page-newsletter" style={{ paddingTop: 40, paddingBottom: 100 }}>
+    <div className="page page-newsletter" style={{ paddingTop: 36, paddingBottom: 100 }}>
       <div className="wrap">
+        {/* Clean Back Button - No random pill */}
+        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+          <RippleButton
+            as={Link}
+            to="/"
+            className="btn btn-ghost btn-sm"
+            rippleColor="var(--em)"
+          >
+            <Icon name="arrowLeft" />
+            Back to Home
+          </RippleButton>
+        </div>
+
+        {/* Section Header with Disciplined Typography */}
         <Reveal className="sh">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Link to="/" className="btn btn-ghost btn-sm">
-              <Icon name="arrow" style={{ transform: 'rotate(180deg)', width: 16, height: 16 }} /> Back to Home
-            </Link>
-            <span className="chip" style={{ opacity: 1, animation: 'none' }}>
-              <Icon name="newspaper" style={{ width: 14, height: 14, color: 'var(--gold)' }} />
-              The Discovery Herald Archive
-            </span>
-          </div>
-          <h2>Discovery Library Newsletters</h2>
+          <h2>
+            The Discovery <span className="hl-word hl-gold">Herald</span>
+          </h2>
           <p>
-            Monthly updates, academic writing tips, VET sector updates, and announcements from the Discovery Library team.
+            Monthly updates, academic writing advice, VET sector updates, and announcements from the library team.
           </p>
         </Reveal>
 
         {/* Subscribe banner */}
-        <Reveal className="glass panel" style={{ marginBottom: 40, padding: '30px 32px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'center' }}>
-            <div>
-              <h3 style={{ fontSize: 20, marginBottom: 6 }}>Subscribe to Monthly Editions</h3>
-              <p style={{ fontSize: 14, color: 'var(--sub)' }}>
-                Receive research highlights, clinic invitations, and APA updates right to your inbox.
+        <Reveal className="glass panel" style={{ marginBottom: 36, padding: '24px 28px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, alignItems: 'center' }}>
+            <div style={{ textAlign: 'left' }}>
+              <h3 style={{ fontSize: 18.5, marginBottom: 4, color: 'var(--cream)', fontWeight: 600 }}>
+                Subscribe to The Discovery Herald
+              </h3>
+              <p style={{ color: 'var(--sub)', fontSize: 14, margin: 0 }}>
+                Get referencing updates and workshop schedules delivered directly to your student email.
               </p>
             </div>
-            <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: 10 }}>
-              <input
-                type="email"
-                required
-                placeholder="Enter your student or staff email"
-                value={subEmail}
-                onChange={(e) => setSubEmail(e.target.value)}
-                style={{
-                  background: 'rgba(2,14,9,0.7)',
-                  border: '1px solid var(--line)',
-                  borderRadius: 10,
-                  padding: '10px 16px',
-                  color: 'var(--cream)',
-                  minWidth: 260,
-                }}
-              />
-              <button type="submit" className="btn btn-gold">
+            <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div className="sbox" style={{ margin: 0, minWidth: 260 }}>
+                <Icon name="newspaper" />
+                <input
+                  type="email"
+                  required
+                  placeholder="Enter your student email..."
+                  value={subEmail}
+                  onChange={(e) => setSubEmail(e.target.value)}
+                />
+              </div>
+              <SpecularButton type="submit" className="btn btn-gold" radius={10}>
                 Subscribe
-              </button>
+              </SpecularButton>
             </form>
           </div>
         </Reveal>
 
-        {/* Issues */}
-        <div style={{ display: 'grid', gap: 24 }}>
-          {NEWSLETTERS.map((item, idx) => (
-            <Reveal key={item.issue} delay={idx * 0.08}>
-              <div className="glass panel" style={{ padding: 28 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span className="badge-new" style={{ margin: 0 }}>{item.issue}</span>
-                  <span style={{ fontSize: 13, color: 'var(--sub)' }}>{item.date} · {item.readTime}</span>
-                </div>
-                <h3 style={{ fontSize: 22, margin: '8px 0 10px' }}>{item.title}</h3>
-                <p style={{ fontSize: 14.5, color: 'var(--sub)', lineHeight: 1.6, marginBottom: 16 }}>
-                  {item.summary}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {item.tags.map((t) => (
-                      <span key={t} className="typetag" style={{ fontSize: 11 }}>{t}</span>
+        {/* Newsletter list */}
+        <div style={{ display: 'grid', gap: 16 }}>
+          {displayNewsletters.map((n, i) => (
+            <Reveal key={n.issue || i} delay={i * 0.06}>
+              <div
+                className="glass panel"
+                style={{
+                  padding: '22px 26px',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  gap: 20,
+                  alignItems: 'center',
+                  textAlign: 'left',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <span className="typetag">{n.issue}</span>
+                    <span style={{ fontSize: 13, color: 'var(--sub)' }}>{n.date} · {n.readTime}</span>
+                  </div>
+
+                  <h3 style={{ fontSize: 18, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
+                    {n.title}
+                  </h3>
+
+                  <p style={{ color: 'var(--sub)', fontSize: 14, lineHeight: 1.55, marginBottom: 12, maxWidth: 840 }}>
+                    {n.summary}
+                  </p>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {n.tags.map((t) => (
+                      <span
+                        key={t}
+                        style={{
+                          fontSize: 12,
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid var(--line)',
+                          padding: '2px 9px',
+                          borderRadius: 100,
+                          color: 'var(--sub)',
+                        }}
+                      >
+                        {t}
+                      </span>
                     ))}
                   </div>
-                  <button
+                </div>
+
+                <div>
+                  <RippleButton
+                    as="button"
                     type="button"
-                    className="btn btn-ghost btn-sm"
                     onClick={() => {
-                      if (onNotify) onNotify(`Opening "${item.title}" digital reader.`);
+                      if (n.pdf_url) window.open(n.pdf_url, '_blank', 'noopener,noreferrer');
+                      else if (onNotify) onNotify(`Opening ${n.issue}`);
                     }}
+                    className="btn btn-ghost btn-sm"
+                    rippleColor="var(--em)"
                   >
-                    Read Full Edition ↗
-                  </button>
+                    Read Issue <Icon name="arrow" style={{ width: 14, height: 14 }} />
+                  </RippleButton>
                 </div>
               </div>
             </Reveal>

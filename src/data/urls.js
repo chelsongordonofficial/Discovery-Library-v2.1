@@ -1,29 +1,28 @@
 /**
- * WordPress Live Destination URLs for Discovery Library
- * All homepage buttons and navigation links route directly to these WordPress pages.
+ * Internal SPA Route Destinations for Discovery Library
+ * Removes hardcoded WordPress page redirects so the entire portal acts as a single cohesive app.
  */
 export const SITE_URLS = {
-  home: 'https://discoverylibrary.com.au/',
-  resources: 'https://discoverylibrary.com.au/library-services/library-resource/',
-  videos: 'https://discoverylibrary.com.au/library-services/library-resource/training-videos/',
-  sessions: 'https://discoverylibrary.com.au/upcoming-trainings/',
-  referencing: 'https://discoverylibrary.com.au/referencing/',
-  newsletter: 'https://discoverylibrary.com.au/newsletter/',
+  home: '/',
+  resources: '/resources',
+  videos: '/videos',
+  sessions: '/sessions',
+  referencing: '/referencing',
+  newsletter: '/newsletter',
   llnd: 'http://myllnd.com/login',
-  consultation: 'https://discoverylibrary.com.au/contact/',
-  contact: 'https://discoverylibrary.com.au/contact/',
-  links: 'https://discoverylibrary.com.au/library-services/library-resource/useful-links-videos/',
-  recordings: 'https://discoverylibrary.com.au/library-services/library-resource/training-videos/',
+  consultation: '/contact',
+  contact: '/contact',
+  links: '/useful-links',
+  recordings: '/recordings',
 };
 
 /**
- * Resolves any route or path to the corresponding live WordPress URL.
- * Handles both full URLs and internal route paths safely.
+ * Resolves any route or path to the corresponding client-side route.
  */
 export function resolveUrl(to) {
-  if (!to) return SITE_URLS.home;
-  
-  // If it's already an absolute or scheme-based URL
+  if (!to) return '/';
+
+  // External URLs
   if (
     to.startsWith('http://') ||
     to.startsWith('https://') ||
@@ -34,23 +33,23 @@ export function resolveUrl(to) {
     return to;
   }
 
-  // Preserve page anchors if needed (e.g. #nav)
+  // Anchors
   if (to.startsWith('#') && !to.startsWith('#/')) {
     return to;
   }
 
   const clean = to.replace(/^[#/]+/, '').toLowerCase();
 
-  if (!clean || clean === 'home') return SITE_URLS.home;
-  if (clean.startsWith('resource')) return SITE_URLS.resources;
-  if (clean.startsWith('video')) return SITE_URLS.videos;
-  if (clean.startsWith('session') || clean.startsWith('upcoming') || clean.startsWith('training')) return SITE_URLS.sessions;
-  if (clean.startsWith('referenc')) return SITE_URLS.referencing;
-  if (clean.startsWith('newsletter')) return SITE_URLS.newsletter;
-  if (clean.startsWith('llnd') || clean.startsWith('myllnd')) return SITE_URLS.llnd;
-  if (clean.startsWith('consult') || clean.startsWith('contact')) return SITE_URLS.contact;
-  if (clean.startsWith('link') || clean.startsWith('tool')) return SITE_URLS.links;
-  if (clean.startsWith('record')) return SITE_URLS.recordings;
+  if (!clean || clean === 'home') return '/';
+  if (clean.startsWith('resource')) return '/resources';
+  if (clean.startsWith('video')) return '/videos';
+  if (clean.startsWith('session') || clean.startsWith('upcoming') || clean.startsWith('training')) return '/sessions';
+  if (clean.startsWith('referenc')) return '/referencing';
+  if (clean.startsWith('newsletter')) return '/newsletter';
+  if (clean.startsWith('llnd') || clean.startsWith('myllnd')) return 'http://myllnd.com/login';
+  if (clean.startsWith('consult') || clean.startsWith('contact')) return '/contact';
+  if (clean.includes('link') || clean.startsWith('tool')) return '/useful-links';
+  if (clean.startsWith('record')) return '/recordings';
 
-  return `${SITE_URLS.home}${clean}/`;
+  return `/${clean}`;
 }

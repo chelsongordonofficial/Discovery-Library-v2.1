@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../ui/Icon';
 import Link from '../ui/Link';
-import { SESSIONS, SEARCH_VIDEOS, SITE_URLS } from '../../data';
+import { SESSIONS as FALLBACK_SESSIONS, SEARCH_VIDEOS as FALLBACK_VIDEOS, SITE_URLS } from '../../data';
+import { useWpData } from '../../context/WpContext';
 
 function SearchModal({ open, onClose }) {
+  const { searchVideos, sessions } = useWpData();
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
 
@@ -14,14 +16,20 @@ function SearchModal({ open, onClose }) {
   const results = useMemo(() => {
     const term = q.toLowerCase().trim();
     const out = [];
-    SEARCH_VIDEOS.forEach(([t, d]) => {
-      if (!term || t.toLowerCase().includes(term) || d.toLowerCase().includes(term)) out.push({ type: 'Video', icon: 'play', title: t, desc: d, to: SITE_URLS.videos });
+    const videoList = searchVideos && searchVideos.length > 0 ? searchVideos : FALLBACK_VIDEOS;
+    videoList.forEach(([t, d]) => {
+      if (!term || t.toLowerCase().includes(term) || (d && d.toLowerCase().includes(term))) {
+        out.push({ type: 'Video', icon: 'play', title: t, desc: d, to: SITE_URLS.videos });
+      }
     });
-    SESSIONS.forEach((s) => {
-      if (!term || s.title.toLowerCase().includes(term)) out.push({ type: `Session: ${s.type}`, icon: 'calendar', title: s.title, desc: `${s.wd} ${s.d} ${s.mon} · ${s.time}`, to: SITE_URLS.sessions });
+    const sessionList = sessions && sessions.length > 0 ? sessions : FALLBACK_SESSIONS;
+    sessionList.forEach((s) => {
+      if (!term || s.title.toLowerCase().includes(term)) {
+        out.push({ type: `Session: ${s.type}`, icon: 'calendar', title: s.title, desc: `${s.wd} ${s.d} ${s.mon} · ${s.time}`, to: SITE_URLS.sessions });
+      }
     });
     return out.slice(0, 8);
-  }, [q]);
+  }, [q, searchVideos, sessions]);
 
   return (
     <div className={`backdrop${open ? ' show' : ''}`} role="dialog" aria-modal="true" aria-labelledby="stitle" aria-hidden={!open} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>

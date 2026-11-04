@@ -37,7 +37,7 @@ import { SITE_URLS } from './urls';
 
 const RES_CARDS = [
   { to: SITE_URLS.videos, cls: 'c-em', icon: 'play', t: 'Training Videos', d: 'Curated video lessons on VET compliance, technology, and assessor standards.' },
-  { to: SITE_URLS.links, cls: 'c-gold', icon: 'link', t: 'Useful Links & Tools', d: 'Directory of academic search engines, research databases, and style manuals.' },
+  { to: SITE_URLS.links, cls: 'c-gold', icon: 'link', t: 'Useful Links & Videos', d: 'Directory of academic search engines, research databases, and style manuals.' },
   { to: SITE_URLS.recordings, cls: 'c-mint', icon: 'record', t: 'Session Recordings', d: 'Catch up on past live clinics, workshops, and compliance briefings anytime.' },
   { to: SITE_URLS.sessions, cls: 'c-amber', icon: 'calendar', t: 'Upcoming Sessions', d: 'Live referencing clinics, numeracy workshops, and ASQA webinars.', isNew: true },
 ];
@@ -61,7 +61,7 @@ const MOBILE_LINKS = [
   [SITE_URLS.home, 'Home'],
   [SITE_URLS.resources, 'Library Resources'],
   [SITE_URLS.videos, 'Training Videos'],
-  [SITE_URLS.links, 'Useful Links & Tools'],
+  [SITE_URLS.links, 'Useful Links & Videos'],
   [SITE_URLS.recordings, 'Session Recordings'],
   [SITE_URLS.sessions, 'Upcoming Sessions'],
   [SITE_URLS.referencing, 'Referencing Guide'],
@@ -98,5 +98,5 @@ const SEARCH_VIDEOS = [
 ];
 
 export { SITE_URLS, resolveUrl } from './urls';
-export { SESSIONS, nextSession } from './sessions';
+export { SESSIONS, FALLBACK_UPCOMING_SESSIONS, FALLBACK_PREVIOUS_SESSIONS, nextSession } from './sessions';
 export { WORD_LESSONS, WORD_LESSONS_DATA, RES_CARDS, QUICK, NAV_LINKS, MOBILE_LINKS, FOOT_LINKS, SEARCH_VIDEOS };

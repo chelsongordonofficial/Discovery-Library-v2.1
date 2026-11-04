@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import Icon from '../ui/Icon';
+import Link from '../ui/Link';
 import Reveal from '../ui/Reveal';
 import { prefersReduced } from '../../lib/utils';
 
@@ -20,7 +21,7 @@ function ResCard({ card, index }) {
 
   return (
     <Reveal className="tilt-wrap" delay={index * 0.09}>
-      <a ref={ref} href={card.to} className={`rcard glass ${card.cls}`} onPointerMove={onMove} onPointerLeave={onLeave}>
+      <Link ref={ref} to={card.to} className={`rcard glass ${card.cls}`} onPointerMove={onMove} onPointerLeave={onLeave}>
         {card.isNew}
         <span className="ico"><Icon name={card.icon} /></span>
         <h3>
@@ -29,7 +30,7 @@ function ResCard({ card, index }) {
         </h3>
         <p>{card.d}</p>
         <span className="go"><Icon name="arrow" /></span>
-      </a>
+      </Link>
     </Reveal>
   );
 }

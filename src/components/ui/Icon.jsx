@@ -41,6 +41,23 @@ function CopyIcon(props) {
   );
 }
 
+function ArrowLeftIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16" {...props}>
+      <path d="M19 12H5m7 7-7-7 7-7" />
+    </svg>
+  );
+}
+
+function MailIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+  );
+}
+
 const ICONS = {
   play: PlayIcon,
   playSimple: PlayIconSimple,
@@ -57,6 +74,9 @@ const ICONS = {
   menu: MobileMenuIcon,
   browse: BrowseIcon,
   arrow: ArrowIcon,
+  arrowLeft: ArrowLeftIcon,
+  back: ArrowLeftIcon,
+  mail: MailIcon,
   check: CheckIcon,
   close: CloseIcon,
   copy: CopyIcon,

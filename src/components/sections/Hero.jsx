@@ -1,20 +1,29 @@
-import { useMemo } from 'react';
 import Link from '../ui/Link';
 import SpecularButton from '../ui/SpecularButton';
 import RippleButton from '../ui/RippleButton';
-import { nextSession, SITE_URLS } from '../../data';
+import { nextSession as fallbackNextSession, SITE_URLS } from '../../data';
+import { useWpData } from '../../context/WpContext';
 import Icon from '../ui/Icon';
 
 function Hero({ cueHidden }) {
-  const ns = useMemo(() => nextSession(), []);
+  const { hasLiveUpcomingSessions, nextSession: liveNextSession, isInitialLoading } = useWpData();
+  const ns = liveNextSession;
+  const displayTitle = ns && ns.title ? ns.title.split(':')[0] : 'Upcoming Session';
+
   return (
     <section className="hero">
       <div className="wrap">
         <div className="hero-grid">
           <div className="hero-text">
             <span className="chip">
-              <span className="live" />
-              Next live session: {ns.title.split(':')[0]} · {ns.wd} {ns.d} {ns.mon}
+              <span className="live" style={!hasLiveUpcomingSessions ? { background: 'var(--gold)' } : undefined} />
+              {isInitialLoading ? (
+                'Checking upcoming schedule...'
+              ) : hasLiveUpcomingSessions && ns ? (
+                `Next live session: ${displayTitle} · ${ns.wd} ${ns.d} ${ns.mon}`
+              ) : (
+                'Live sessions: New schedule coming soon'
+              )}
             </span>
             <h1 className="mega">
               {['Study smarter', 'with everything', 'in one library.'].map((line, i) => (

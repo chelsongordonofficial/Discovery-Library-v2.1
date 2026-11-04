@@ -1,199 +1,168 @@
-import { useState } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
+import ResCard from '../components/sections/ResCard';
+import RippleButton from '../components/ui/RippleButton';
+import SpecularButton from '../components/ui/SpecularButton';
+import { SITE_URLS } from '../data/urls';
 
-const DIRECTORY = [
+const RESOURCE_PARENT_CARDS = [
   {
-    category: 'Academic Search & Research Databases',
-    items: [
-      {
-        name: 'VOCEDplus',
-        desc: 'The National Centre for Vocational Education Research (NCVER) free international research database for VET.',
-        url: 'https://www.voced.edu.au',
-        tag: 'VET Research',
-        icon: 'book',
-      },
-      {
-        name: 'Google Scholar',
-        desc: 'Freely accessible search engine indexing full text or metadata of scholarly literature across disciplines.',
-        url: 'https://scholar.google.com',
-        tag: 'General Academic',
-        icon: 'search',
-      },
-      {
-        name: 'ERIC (Education Resources Info Center)',
-        desc: 'Comprehensive online library of education research and information sponsored by the Institute of Education Sciences.',
-        url: 'https://eric.ed.gov',
-        tag: 'Education',
-        icon: 'book',
-      },
-      {
-        name: 'Trove (National Library of Australia)',
-        desc: 'Discover Australian research papers, historical archives, government gazettes, and published texts.',
-        url: 'https://trove.nla.gov.au',
-        tag: 'Australian Archives',
-        icon: 'link',
-      },
-    ],
+    to: SITE_URLS.videos,
+    cls: 'c-em',
+    icon: 'play',
+    t: 'Training Videos',
+    d: 'Curated video lessons on VET compliance, technology, and assessor standards.',
   },
   {
-    category: 'VET Standards & Compliance Portals',
-    items: [
-      {
-        name: 'training.gov.au (TGA)',
-        desc: 'The official national register of information on Training Packages, Qualifications, Courses, and RTOs.',
-        url: 'https://training.gov.au',
-        tag: 'Official Register',
-        icon: 'listCheck',
-      },
-      {
-        name: 'ASQA (Australian Skills Quality Authority)',
-        desc: 'National regulator for Australia’s vocational education and training sector, providing standards and student guides.',
-        url: 'https://www.asqa.gov.au',
-        tag: 'Regulatory',
-        icon: 'lock',
-      },
-      {
-        name: 'Unique Student Identifier (USI)',
-        desc: 'Access your authenticated USI transcript and verify vocational training records across providers.',
-        url: 'https://www.usi.gov.au',
-        tag: 'Student Transcript',
-        icon: 'lock',
-      },
-    ],
+    to: SITE_URLS.links,
+    cls: 'c-gold',
+    icon: 'link',
+    t: 'Useful Links & Videos',
+    d: 'Directory of academic search engines, research databases, and style manuals.',
   },
   {
-    category: 'Academic Writing & Study Tools',
-    items: [
-      {
-        name: 'APA Style Central (7th Edition)',
-        desc: 'Official APA referencing style blog and answers to complex electronic referencing dilemmas.',
-        url: 'https://apastyle.apa.org',
-        tag: 'Citation Standard',
-        icon: 'listCheck',
-      },
-      {
-        name: 'Purdue OWL (Online Writing Lab)',
-        desc: 'World-renowned writing resources, formatting guidelines, and sample academic papers.',
-        url: 'https://owl.purdue.edu',
-        tag: 'Writing Guide',
-        icon: 'newspaper',
-      },
-      {
-        name: 'Zotero Reference Manager',
-        desc: 'Free, easy-to-use tool to help you collect, organize, annotate, cite, and share research.',
-        url: 'https://www.zotero.org',
-        tag: 'Software',
-        icon: 'link',
-      },
-    ],
+    to: SITE_URLS.sessions,
+    cls: 'c-amber',
+    icon: 'calendar',
+    t: 'Upcoming Sessions',
+    d: 'Live referencing clinics, numeracy workshops, and ASQA webinars.',
+  },
+  {
+    to: SITE_URLS.recordings,
+    cls: 'c-mint',
+    icon: 'record',
+    t: 'Session Recordings',
+    d: 'Catch up on past live clinics, workshops, and compliance briefings anytime.',
   },
 ];
 
-export default function ResourcesPage({ onNotify }) {
-  const [filterQuery, setFilterQuery] = useState('');
+const HUB_HIGHLIGHTS = [
+  {
+    title: 'Vocational Standards & Integrity',
+    desc: 'Align your assessments and training delivery with current ASQA standards, TAE compliance requirements, and student academic integrity protocols.',
+    to: SITE_URLS.videos,
+    btnLabel: 'Watch Training Videos',
+    icon: 'listCheck',
+    colorCls: 'c-em',
+  },
+  {
+    title: 'Authoritative Registers & Citations',
+    desc: 'Access verified national registers like training.gov.au, USI portals, VOCEDplus international databases, and APA 7th style guides.',
+    to: SITE_URLS.links,
+    btnLabel: 'Browse Useful Links',
+    icon: 'link',
+    colorCls: 'c-gold',
+  },
+  {
+    title: 'Interactive Workshops & Live Q&A',
+    desc: 'Participate in scheduled online workshops with academic specialists, ask questions in real-time, or stream broadcast recordings on demand.',
+    to: SITE_URLS.sessions,
+    btnLabel: 'View Workshop Schedule',
+    icon: 'calendar',
+    colorCls: 'c-amber',
+  },
+];
 
+export default function ResourcesPage() {
   return (
-    <div className="page page-resources" style={{ paddingTop: 40, paddingBottom: 100 }}>
+    <div className="page page-resources" style={{ paddingTop: 36, paddingBottom: 100 }}>
       <div className="wrap">
+        {/* Clean Back Button - No random pill */}
+        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+          <RippleButton
+            as={Link}
+            to="/"
+            className="btn btn-ghost btn-sm"
+            rippleColor="var(--em)"
+          >
+            <Icon name="arrowLeft" />
+            Back to Home
+          </RippleButton>
+        </div>
+
+        {/* Section Header with Disciplined Typography */}
         <Reveal className="sh">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Link to="/" className="btn btn-ghost btn-sm">
-              <Icon name="arrow" style={{ transform: 'rotate(180deg)', width: 16, height: 16 }} /> Back to Home
-            </Link>
-            <span className="chip" style={{ opacity: 1, animation: 'none' }}>
-              <Icon name="book" style={{ width: 14, height: 14, color: 'var(--gold)' }} />
-              Research & Digital Catalogs
-            </span>
-          </div>
-          <h2>Library Resources & Useful Links</h2>
+          <h2>
+            Library <span className="hl-word hl-em">Resources</span>
+          </h2>
           <p>
-            Curated repository of academic search engines, research databases, VET national frameworks, and writing assistance tools.
+            Explore training videos, upcoming workshops, session recordings, and research databases.
           </p>
         </Reveal>
 
-        {/* Search */}
-        <Reveal className="glass panel" style={{ marginBottom: 36, padding: '16px 20px' }}>
-          <div className="sbox">
-            <Icon name="search" />
-            <input
-              type="text"
-              placeholder="Filter databases, journals, official registers, or writing aids..."
-              value={filterQuery}
-              onChange={(e) => setFilterQuery(e.target.value)}
-              aria-label="Filter library links"
-            />
-          </div>
-        </Reveal>
-
-        {/* Directory Categorized */}
-        <div style={{ display: 'grid', gap: 40 }}>
-          {DIRECTORY.map((cat, cIdx) => {
-            const items = cat.items.filter(
-              (it) =>
-                !filterQuery ||
-                it.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
-                it.desc.toLowerCase().includes(filterQuery.toLowerCase()) ||
-                it.tag.toLowerCase().includes(filterQuery.toLowerCase())
-            );
-
-            if (items.length === 0) return null;
-
-            return (
-              <div key={cat.category}>
-                <Reveal delay={cIdx * 0.1}>
-                  <h3 style={{ fontSize: 22, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }} />
-                    {cat.category}
-                  </h3>
-                </Reveal>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-                  {items.map((it, iIdx) => (
-                    <Reveal key={it.name} delay={iIdx * 0.05}>
-                      <a
-                        href={it.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="rcard glass c-gold"
-                        style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                        onClick={() => {
-                          if (onNotify) onNotify(`Opening external catalog: ${it.name}`);
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                          <span className="ico"><Icon name={it.icon} /></span>
-                          <span className="typetag" style={{ fontSize: 11 }}>{it.tag}</span>
-                        </div>
-                        <h4 style={{ fontSize: 18, margin: '0 0 6px' }}>{it.name}</h4>
-                        <p style={{ fontSize: 13.5, color: 'var(--sub)', flex: 1 }}>{it.desc}</p>
-                        <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                          <span style={{ fontSize: 12.5, color: 'var(--gold)', fontWeight: 600 }}>
-                            Access Catalog ↗
-                          </span>
-                          <span className="go"><Icon name="arrow" /></span>
-                        </div>
-                      </a>
-                    </Reveal>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+        {/* Parent Resource Cards Navigation Section (4 Cards) */}
+        <div className="cards4" style={{ marginBottom: 48 }}>
+          {RESOURCE_PARENT_CARDS.map((card, idx) => (
+            <ResCard key={card.t} card={card} index={idx} />
+          ))}
         </div>
 
-        {/* CTA */}
-        <Reveal style={{ marginTop: 50 }}>
-          <div className="cta-band" style={{ padding: '40px 32px' }}>
-            <h2>Need help locating a specific journal or article?</h2>
-            <p>Our library staff can request inter-library articles or guide your literature search.</p>
-            <div className="row">
-              <Link to="/consultation" className="btn btn-gold btn-lg">Ask a Librarian</Link>
-              <Link to="/referencing" className="btn btn-ghost btn-lg">APA Referencing Guides</Link>
-            </div>
+        {/* Dedicated Learning Pillars Hub */}
+        <div style={{ marginTop: 24 }}>
+          <Reveal className="sh" style={{ marginBottom: 28, textAlign: 'left' }}>
+            <h3 style={{ fontSize: 24, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
+              Discovery Library <span className="hl-word hl-gold">Pillars</span>
+            </h3>
+            <p style={{ margin: 0, fontSize: 15 }}>
+              Comprehensive digital support tailored for vocational students, trainers, and educational assessors.
+            </p>
+          </Reveal>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 20 }}>
+            {HUB_HIGHLIGHTS.map((item, idx) => (
+              <Reveal key={item.title} delay={idx * 0.06}>
+                <div
+                  className={`glass panel ${item.colorCls}`}
+                  style={{
+                    padding: 24,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    textAlign: 'left',
+                    borderRadius: 18,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 10,
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid var(--line)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Icon name={item.icon} style={{ width: 18, height: 18 }} />
+                    </div>
+                    <h4 style={{ fontSize: 17.5, color: 'var(--cream)', margin: 0, fontWeight: 600 }}>
+                      {item.title}
+                    </h4>
+                  </div>
+
+                  <p style={{ fontSize: 14, color: 'var(--sub)', flexGrow: 1, marginBottom: 20, lineHeight: 1.55 }}>
+                    {item.desc}
+                  </p>
+
+                  <div style={{ marginTop: 'auto' }}>
+                    <SpecularButton
+                      as={Link}
+                      to={item.to}
+                      className="btn btn-ghost btn-sm"
+                      radius={10}
+                      style={{ width: '100%', justifyContent: 'center' }}
+                    >
+                      {item.btnLabel} <Icon name="arrow" style={{ width: 14, height: 14 }} />
+                    </SpecularButton>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
-        </Reveal>
+        </div>
       </div>
     </div>
   );

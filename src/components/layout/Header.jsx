@@ -22,7 +22,12 @@ function Header({ scrolled, menuOpen, setMenuOpen, onSearch, currentRoute = '/' 
         </Link>
         <div className="navlinks">
           {NAV_LINKS.map((l) => {
-            const isActive = currentRoute === l.to;
+            const cleanCurrent = (currentRoute || '/').replace(/^[#/]+/, '').toLowerCase();
+            const cleanTo = (l.to || '/').replace(/^[#/]+/, '').toLowerCase();
+            const isActive =
+              (cleanCurrent === '' && cleanTo === '') ||
+              (cleanTo !== '' && cleanCurrent.startsWith(cleanTo));
+
             return (
               <Link
                 key={l.label}
@@ -59,16 +64,24 @@ function Header({ scrolled, menuOpen, setMenuOpen, onSearch, currentRoute = '/' 
         </div>
       </nav>
       <div className={`mnav${menuOpen ? ' open' : ''}`} id="mnav">
-        {MOBILE_LINKS.map(([to, label]) => (
-          <Link
-            key={label}
-            to={to}
-            onClick={close}
-            style={currentRoute === to ? { color: 'var(--gold)' } : undefined}
-          >
-            {label}
-          </Link>
-        ))}
+        {MOBILE_LINKS.map(([to, label]) => {
+          const cleanCurrent = (currentRoute || '/').replace(/^[#/]+/, '').toLowerCase();
+          const cleanTo = (to || '/').replace(/^[#/]+/, '').toLowerCase();
+          const isActive =
+            (cleanCurrent === '' && cleanTo === '') ||
+            (cleanTo !== '' && cleanCurrent.startsWith(cleanTo));
+
+          return (
+            <Link
+              key={label}
+              to={to}
+              onClick={close}
+              style={isActive ? { color: 'var(--gold)' } : undefined}
+            >
+              {label}
+            </Link>
+          );
+        })}
         <SpecularButton
           as={Link}
           to={SITE_URLS.contact}
