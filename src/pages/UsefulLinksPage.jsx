@@ -4,6 +4,7 @@ import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
+import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
 import { SITE_URLS } from '../data/urls';
 
@@ -167,7 +168,14 @@ export default function UsefulLinksPage({ onNotify }) {
         {/* Section Header with Disciplined Typography */}
         <Reveal className="sh">
           <h2>
-            Useful <span className="hl-word hl-gold">Links</span> & Videos
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Useful</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Links & Videos
+            </GradientText>
           </h2>
           <p>
             Authoritative registers, research databases, and style manuals for vocational learners and trainers.

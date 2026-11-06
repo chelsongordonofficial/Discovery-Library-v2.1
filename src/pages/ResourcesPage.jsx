@@ -3,7 +3,7 @@ import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import ResCard from '../components/sections/ResCard';
 import RippleButton from '../components/ui/RippleButton';
-import SpecularButton from '../components/ui/SpecularButton';
+import GradientText from '../components/ui/GradientText';
 import { SITE_URLS } from '../data/urls';
 
 const RESOURCE_PARENT_CARDS = [
@@ -66,7 +66,7 @@ const HUB_HIGHLIGHTS = [
 
 export default function ResourcesPage() {
   return (
-    <div className="page page-resources" style={{ paddingTop: 36, paddingBottom: 100 }}>
+    <div className="page page-resources" style={{ paddingTop: 36, paddingBottom: 0 }}>
       <div className="wrap">
         {/* Clean Back Button - No random pill */}
         <div style={{ textAlign: 'left', marginBottom: 20 }}>
@@ -82,9 +82,16 @@ export default function ResourcesPage() {
         </div>
 
         {/* Section Header with Disciplined Typography */}
-        <Reveal className="sh">
+        <Reveal className="sh" style={{marginLeft: 0}}>
           <h2>
-            Library <span className="hl-word hl-em">Resources</span>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Library</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Resources
+            </GradientText>
           </h2>
           <p>
             Explore training videos, upcoming workshops, session recordings, and research databases.
@@ -98,71 +105,7 @@ export default function ResourcesPage() {
           ))}
         </div>
 
-        {/* Dedicated Learning Pillars Hub */}
-        <div style={{ marginTop: 24 }}>
-          <Reveal className="sh" style={{ marginBottom: 28, textAlign: 'left' }}>
-            <h3 style={{ fontSize: 24, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
-              Discovery Library <span className="hl-word hl-gold">Pillars</span>
-            </h3>
-            <p style={{ margin: 0, fontSize: 15 }}>
-              Comprehensive digital support tailored for vocational students, trainers, and educational assessors.
-            </p>
-          </Reveal>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 20 }}>
-            {HUB_HIGHLIGHTS.map((item, idx) => (
-              <Reveal key={item.title} delay={idx * 0.06}>
-                <div
-                  className={`glass panel ${item.colorCls}`}
-                  style={{
-                    padding: 24,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: '100%',
-                    textAlign: 'left',
-                    borderRadius: 18,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                    <div
-                      style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 10,
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid var(--line)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon name={item.icon} style={{ width: 18, height: 18 }} />
-                    </div>
-                    <h4 style={{ fontSize: 17.5, color: 'var(--cream)', margin: 0, fontWeight: 600 }}>
-                      {item.title}
-                    </h4>
-                  </div>
-
-                  <p style={{ fontSize: 14, color: 'var(--sub)', flexGrow: 1, marginBottom: 20, lineHeight: 1.55 }}>
-                    {item.desc}
-                  </p>
-
-                  <div style={{ marginTop: 'auto' }}>
-                    <SpecularButton
-                      as={Link}
-                      to={item.to}
-                      className="btn btn-ghost btn-sm"
-                      radius={10}
-                      style={{ width: '100%', justifyContent: 'center' }}
-                    >
-                      {item.btnLabel} <Icon name="arrow" style={{ width: 14, height: 14 }} />
-                    </SpecularButton>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
+        
       </div>
     </div>
   );

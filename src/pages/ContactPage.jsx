@@ -3,6 +3,7 @@ import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
+import GradientText from '../components/ui/GradientText';
 
 const CAMPUS_LOCATIONS = [
   { city: 'Brisbane', address: 'Level 2, 288 Edward Street, Brisbane QLD 4000', hours: 'Mon–Fri: 8:00 AM – 6:00 PM', email: 'library.bne@aibtglobal.edu.au' },
@@ -53,7 +54,14 @@ export default function ContactPage() {
         {/* Section Header with Disciplined Typography */}
         <Reveal className="sh">
           <h2>
-            Contact Us & Campus <span className="hl-word hl-gold">Hubs</span>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Contact Us & Campus</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Hubs
+            </GradientText>
           </h2>
           <p>
             Connect with our library staff in person at any campus location or submit an inquiry online.

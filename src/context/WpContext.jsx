@@ -26,10 +26,10 @@ const WpContext = createContext({
   wpSessions: [],
   wpUpcomingSessions: [],
   wpPreviousSessions: [],
-  upcomingSessions: FALLBACK_UPCOMING_SESSIONS,
+  upcomingSessions: [],
   previousSessions: FALLBACK_PREVIOUS_SESSIONS,
-  sessions: FALLBACK_UPCOMING_SESSIONS,
-  nextSession: FALLBACK_UPCOMING_SESSIONS[0],
+  sessions: [],
+  nextSession: null,
   wpVideos: [],
   searchVideos: SEARCH_VIDEOS,
   usefulLinks: [],
@@ -57,33 +57,45 @@ export function WpProvider({ children }) {
         fetchNewsletters(),
       ]);
 
-      const liveSessions = sessionsRes.status === 'fulfilled' ? sessionsRes.value : [];
-      const liveVideos = videosRes.status === 'fulfilled' ? videosRes.value : [];
-      const liveLinks = linksRes.status === 'fulfilled' ? linksRes.value : [];
-      const liveNews = newsRes.status === 'fulfilled' ? newsRes.value : [];
+      const liveSessions = sessionsRes.status === 'fulfilled' && sessionsRes.value !== null ? sessionsRes.value : null;
+      const liveVideos = videosRes.status === 'fulfilled' && videosRes.value !== null ? videosRes.value : null;
+      const liveLinks = linksRes.status === 'fulfilled' && linksRes.value !== null ? linksRes.value : null;
+      const liveNews = newsRes.status === 'fulfilled' && newsRes.value !== null ? newsRes.value : null;
 
-      setWpSessions(liveSessions);
-      setWpVideos(liveVideos);
-      setUsefulLinks(liveLinks);
-      setNewsletters(liveNews);
+      if (liveSessions !== null) {
+        setWpSessions(liveSessions);
+      }
+      if (liveVideos !== null) {
+        setWpVideos(liveVideos);
+      }
+      if (liveLinks !== null) {
+        setUsefulLinks(liveLinks);
+      }
+      if (liveNews !== null) {
+        setNewsletters(liveNews);
+      }
 
       const connected =
-        liveSessions.length > 0 ||
-        liveVideos.length > 0 ||
-        liveLinks.length > 0 ||
-        liveNews.length > 0;
+        (liveSessions !== null && liveSessions.length > 0) ||
+        (liveVideos !== null && liveVideos.length > 0) ||
+        (liveLinks !== null && liveLinks.length > 0) ||
+        (liveNews !== null && liveNews.length > 0);
 
-      setIsLiveConnected(connected);
+      if (connected) {
+        setIsLiveConnected(true);
+      }
 
       // Save to localStorage cache for instant 0ms subsequent renders
-      setStoredWpCache({
-        sessions: liveSessions,
-        videos: liveVideos,
-        links: liveLinks,
-        newsletters: liveNews,
-      });
+      if (liveSessions !== null) {
+        setStoredWpCache({
+          sessions: liveSessions,
+          videos: liveVideos || [],
+          links: liveLinks || [],
+          newsletters: liveNews || [],
+        });
+      }
     } catch (err) {
-      console.warn('[WpProvider] Error loading WP content, using fallbacks:', err);
+      console.warn('[WpProvider] Error loading WP content:', err);
     } finally {
       setLoading(false);
     }
@@ -103,13 +115,13 @@ export function WpProvider({ children }) {
 
   // Merged lists
   const upcomingSessions = useMemo(
-    () => getMergedUpcomingSessions(wpSessions),
-    [wpSessions]
+    () => getMergedUpcomingSessions(wpSessions, isLiveConnected),
+    [wpSessions, isLiveConnected]
   );
 
   const previousSessions = useMemo(
-    () => getMergedPreviousSessions(wpSessions),
-    [wpSessions]
+    () => getMergedPreviousSessions(wpSessions, isLiveConnected),
+    [wpSessions, isLiveConnected]
   );
 
   const currentNextSession = useMemo(

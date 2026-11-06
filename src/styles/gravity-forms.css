@@ -9,7 +9,8 @@
 .gform_wrapper,
 .gform_wrapper.gform-theme--framework,
 .gform_wrapper.gform-theme--orbital,
-#gravity-form-mount {
+#gravity-form-mount,
+#gravity-form-session-mount {
   /* Colors */
   --gf-color-primary: #FFC83A;
   --gf-color-primary-contrast: #1A1300;
@@ -146,10 +147,13 @@
   padding: 4px 10px;
 }
 
-/* Auto-hide the placeholder when any Gravity Form is mounted inside #gravity-form-mount */
+/* Auto-hide the placeholder when any Gravity Form is mounted inside mount containers */
 #gravity-form-mount:has(.gform_wrapper) .gform-mount-placeholder,
 #gravity-form-mount:has(form) .gform-mount-placeholder,
-#gravity-form-mount .gform_wrapper ~ .gform-mount-placeholder {
+#gravity-form-mount .gform_wrapper ~ .gform-mount-placeholder,
+#gravity-form-session-mount:has(.gform_wrapper) .gform-mount-placeholder,
+#gravity-form-session-mount:has(form) .gform-mount-placeholder,
+#gravity-form-session-mount .gform_wrapper ~ .gform-mount-placeholder {
   display: none !important;
 }
 

@@ -16,7 +16,7 @@ import {
 } from '../data/index.js';
 
 export const WP_DOMAIN = 'https://discoverylibrary.com.au';
-const CACHE_KEY = 'discovery_library_wp_cache_v2';
+const CACHE_KEY = 'discovery_library_wp_cache_v6';
 
 export const WP_ENDPOINTS = {
   trainingVideos: `${WP_DOMAIN}/wp-json/wp/v2/training_video`,
@@ -31,12 +31,20 @@ export const WP_ENDPOINTS = {
 export function getStoredWpCache() {
   if (typeof window === 'undefined') return null;
   try {
+    // Clear old legacy cache versions if present
+    localStorage.removeItem('discovery_library_wp_cache_v1');
+    localStorage.removeItem('discovery_library_wp_cache_v2');
+
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // Cache valid for 30 minutes
     if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
-      return parsed.data;
+      const data = parsed.data;
+      if (data && Array.isArray(data.sessions)) {
+        data.sessions = data.sessions.filter((s) => s && s.isWp === true);
+      }
+      return data;
     }
   } catch {
     // Ignore cache parse errors
@@ -132,10 +140,38 @@ export function isSessionUpcoming(session, now = new Date()) {
 export function normalizeUpcomingSession(item) {
   if (!item) return null;
 
-  const title = decodeHtml(item.title?.rendered || 'Session');
+  const rawTitle = decodeHtml(item.title?.rendered || 'Session');
+
+  // Exclude {AEDT} or {AEST} from displaying in the website title
+  const title = rawTitle
+    .replace(/\s*\{(AEDT|AEST)\}\s*/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
   const meta = item.meta || {};
   const dateStr = meta.session_date || (item.date ? item.date.split('T')[0] : '');
-  const timeStr = meta.session_time || '2:00 PM – 3:30 PM AEST';
+
+  // Time field can be a range of time (e.g. "3:00 PM – 4:00 PM AEST" or "10:00 AM - 11:30 AM AEDT")
+  let timeStr = meta.session_time || item.session_time || '2:00 PM – 3:30 PM AEST';
+
+  // 1. Get timezone directly from time field (e.g., AEST, AEDT, AWST, ACST)
+  let detectedTz = 'AEST';
+  const tzInTimeMatch = timeStr.match(/\b(AEST|AEDT|AWST|ACST|ACDT)\b/i);
+  if (tzInTimeMatch) {
+    detectedTz = tzInTimeMatch[1].toUpperCase();
+  } else {
+    // Fallback: check if timezone was in title
+    const tzInTitleMatch = rawTitle.match(/\{(AEDT|AEST)\}/i);
+    if (tzInTitleMatch) {
+      detectedTz = tzInTitleMatch[1].toUpperCase();
+      timeStr = `${timeStr} ${detectedTz}`;
+    }
+  }
+
+  // Extract description from CPT content, excerpt, or meta
+  const rawDesc = meta.description || item.content?.rendered || item.excerpt?.rendered || '';
+  const desc = decodeHtml(rawDesc.replace(/<[^>]+>/g, '').trim()) ||
+    'Interactive live referencing clinic covering citation mechanics, ASQA evidence requirements, and Q&A with academic mentors.';
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -152,15 +188,21 @@ export function normalizeUpcomingSession(item) {
       const monthIdx = parseInt(parts[1], 10) - 1;
       const dayNum = parseInt(parts[2], 10);
 
-      // Try to parse hours and minutes from timeStr if present
+      // Parse start hours and minutes from time range (e.g. "3:00 PM – 4:00 PM AEST")
       let hours = 14;
       let minutes = 0;
       if (timeStr) {
-        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
         if (match) {
           let h = parseInt(match[1], 10);
-          const m = parseInt(match[2], 10);
-          const ampm = match[3] ? match[3].toUpperCase() : null;
+          const m = match[2] ? parseInt(match[2], 10) : 0;
+          let ampm = match[3] ? match[3].toUpperCase() : null;
+
+          if (!ampm) {
+            const overallAmpm = timeStr.match(/\b(AM|PM)\b/i);
+            if (overallAmpm) ampm = overallAmpm[1].toUpperCase();
+          }
+
           if (ampm === 'PM' && h < 12) h += 12;
           if (ampm === 'AM' && h === 12) h = 0;
           hours = h;
@@ -200,6 +242,9 @@ export function normalizeUpcomingSession(item) {
     cat,
     type,
     title,
+    rawTitle,
+    desc,
+    timezone: detectedTz,
     d,
     mon,
     wd,
@@ -296,13 +341,13 @@ export async function fetchUpcomingSessions() {
     const res = await fetchWithTimeout(`${WP_ENDPOINTS.upcomingSessions}?per_page=50&_embed=true`);
     if (!res.ok) throw new Error(`WP upcoming_session status ${res.status}`);
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       return data.map(normalizeUpcomingSession).filter(Boolean);
     }
     return [];
   } catch (err) {
-    console.warn('[Discovery Library] Failed to fetch upcoming_session from WP, using fallback:', err.message);
-    return [];
+    console.warn('[Discovery Library] Failed to fetch upcoming_session from WP:', err.message);
+    return null;
   }
 }
 
@@ -385,23 +430,27 @@ export function partitionSessions(sessions = []) {
 }
 
 /**
- * Returns merged upcoming sessions:
- * Live WP upcoming sessions first, followed by fallback upcoming sessions to complete the UI.
- * Excludes any past sessions.
+ * Returns upcoming sessions:
+ * If WordPress has upcoming sessions, return ONLY the live WP upcoming sessions.
+ * Never mix live sessions with fallback data.
+ * If live connected and there are no upcoming sessions, return [] so "Coming Soon" shows.
+ * Only if completely disconnected from WP and fetch failed, return fallback data.
  */
-export function getMergedUpcomingSessions(wpSessions = []) {
+export function getMergedUpcomingSessions(wpSessions = [], isLiveConnected = true) {
   const { upcoming: wpUpcoming } = partitionSessions(wpSessions);
 
-  if (!wpUpcoming || wpUpcoming.length === 0) {
-    return FALLBACK_UPCOMING_SESSIONS;
+  // If live WP upcoming sessions exist, return strictly the live sessions
+  if (wpUpcoming && wpUpcoming.length > 0) {
+    return wpUpcoming;
   }
 
-  // Filter out any fallback session with identical title
-  const remainingFallbacks = FALLBACK_UPCOMING_SESSIONS.filter(
-    (fb) => !wpUpcoming.some((w) => w.title.toLowerCase() === fb.title.toLowerCase())
-  );
+  // If live connection is active but no sessions are currently upcoming in WP,
+  // return empty array so "Coming Soon" design displays (no fallback pollution)
+  if (isLiveConnected) {
+    return [];
+  }
 
-  return [...wpUpcoming, ...remainingFallbacks];
+  return FALLBACK_UPCOMING_SESSIONS;
 }
 
 /**

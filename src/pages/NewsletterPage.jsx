@@ -4,6 +4,7 @@ import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
+import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
 
 const FALLBACK_NEWSLETTERS = [
@@ -77,9 +78,16 @@ export default function NewsletterPage({ onNotify }) {
         </div>
 
         {/* Section Header with Disciplined Typography */}
-        <Reveal className="sh">
+        <Reveal className="sh" style={{marginLeft: 0}}>
           <h2>
-            The Discovery <span className="hl-word hl-gold">Herald</span>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Our</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Newsletter
+            </GradientText>
           </h2>
           <p>
             Monthly updates, academic writing advice, VET sector updates, and announcements from the library team.

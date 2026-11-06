@@ -4,6 +4,7 @@ import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
+import GradientText from '../components/ui/GradientText';
 import CiteRow from '../components/sections/CiteRow';
 import { QUICK } from '../data';
 
@@ -87,9 +88,16 @@ export default function ReferencingPage({ onCopy, onNotify }) {
         </div>
 
         {/* Section Header with Disciplined Typography */}
-        <Reveal className="sh">
+        <Reveal className="sh" style={{marginLeft: 0}}>
           <h2>
-            APA 7th <span className="hl-word hl-gold">Referencing</span> Guide
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Referencing
+            </GradientText>{' '}
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Guide</span>
           </h2>
           <p>
             Standard rules, citation examples, and an interactive generator for Australian vocational students and trainers.

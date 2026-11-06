@@ -32,7 +32,36 @@
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: inherit;
+  gap: 8px;
   justify-content: inherit;
   pointer-events: none;
+}
+
+.specular-button.btn-gold svg,
+.specular-button.btn-em svg {
+  color: var(--ink) !important;
+  stroke: currentColor !important;
+  flex-shrink: 0;
+}
+
+.specular-button.btn-gold svg path,
+.specular-button.btn-em svg path,
+.specular-button.btn-gold svg polyline,
+.specular-button.btn-em svg polyline {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.specular-button svg polygon {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+.specular-button.btn-ghost svg {
+  color: var(--cream);
+}
+
+.specular-button.btn-ghost svg path[fill="none"],
+.specular-button.btn-ghost svg[fill="none"] * {
+  fill: none !important;
 }

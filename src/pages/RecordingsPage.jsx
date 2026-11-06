@@ -4,6 +4,7 @@ import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
+import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
 
 const FALLBACK_RECORDINGS = [
@@ -91,7 +92,16 @@ export default function RecordingsPage({ onNotify }) {
         </div>
 
         <Reveal className="sh">
-          <h2>Session Recordings <span className="hl-word hl-gold">Archive</span></h2>
+          <h2>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Session Recordings</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Archive
+            </GradientText>
+          </h2>
           <p>
             Catch up on previous live referencing clinics, compliance briefings, and academic mentoring workshops anytime.
           </p>

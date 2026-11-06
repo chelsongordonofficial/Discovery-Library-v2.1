@@ -4,6 +4,7 @@ import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
+import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
 
 const RECORDING_FILTERS = [
@@ -23,9 +24,9 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
 
   const [recFilter, setRecFilter] = useState('all');
   const [rsvpSession, setRsvpSession] = useState(null);
-  const [studentEmail, setStudentEmail] = useState('');
-  const [confirmedSessions, setConfirmedSessions] = useState(new Set());
+  const [confirmedSessions] = useState(new Set());
   const [activePlayback, setActivePlayback] = useState(null);
+  const [expandedSessions, setExpandedSessions] = useState(new Set());
 
   // Auto-scroll to section based on navigation target
   useEffect(() => {
@@ -49,13 +50,132 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
     setRsvpSession(s);
   };
 
-  const submitRsvp = (e) => {
-    e.preventDefault();
-    if (!studentEmail.trim()) return;
-    setConfirmedSessions((prev) => new Set([...prev, rsvpSession.title]));
-    if (onNotify) onNotify(`RSVP confirmed for "${rsvpSession.title}". Calendar invite sent to ${studentEmail}!`);
-    setRsvpSession(null);
-    setStudentEmail('');
+  const toggleExpand = (id) => {
+    setExpandedSessions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Generate and download standard .ics calendar invite
+  const handleSaveToCalendar = (session) => {
+    try {
+      let startDate = new Date();
+      let endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+      if (session.rawDate) {
+        const parts = session.rawDate.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+
+          let startH = 14;
+          let startM = 0;
+          let endH = 15;
+          let endM = 30;
+
+          const timeStr = session.time || '';
+          const rangeMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[-–—]\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
+
+          if (rangeMatch) {
+            let h1 = parseInt(rangeMatch[1], 10);
+            const m1 = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : 0;
+            let ampm1 = rangeMatch[3] ? rangeMatch[3].toUpperCase() : null;
+
+            let h2 = parseInt(rangeMatch[4], 10);
+            const m2 = rangeMatch[5] ? parseInt(rangeMatch[5], 10) : 0;
+            let ampm2 = rangeMatch[6] ? rangeMatch[6].toUpperCase() : null;
+
+            if (!ampm1 && ampm2) ampm1 = ampm2;
+            if (ampm1 === 'PM' && h1 < 12) h1 += 12;
+            if (ampm1 === 'AM' && h1 === 12) h1 = 0;
+
+            if (ampm2 === 'PM' && h2 < 12) h2 += 12;
+            if (ampm2 === 'AM' && h2 === 12) h2 = 0;
+
+            startH = h1;
+            startM = m1;
+            endH = h2;
+            endM = m2;
+          } else {
+            const singleMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
+            if (singleMatch) {
+              let h = parseInt(singleMatch[1], 10);
+              const m = singleMatch[2] ? parseInt(singleMatch[2], 10) : 0;
+              const ampm = singleMatch[3] ? singleMatch[3].toUpperCase() : 'PM';
+              if (ampm === 'PM' && h < 12) h += 12;
+              if (ampm === 'AM' && h === 12) h = 0;
+              startH = h;
+              startM = m;
+              endH = h + 1;
+              endM = m;
+            }
+          }
+
+          startDate = new Date(y, m, d, startH, startM, 0);
+          endDate = new Date(y, m, d, endH, endM, 0);
+        }
+      } else if (session.iso) {
+        startDate = new Date(session.iso);
+        endDate = new Date(startDate.getTime() + 90 * 60 * 1000);
+      }
+
+      const pad = (n) => String(n).padStart(2, '0');
+      const toIcsDate = (date) =>
+        `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+
+      const cleanTitle = (session.title || 'Discovery Library Session')
+        .replace(/\s*\{(AEDT|AEST)\}\s*/gi, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      const desc = (session.desc || 'Discovery Library live referencing session')
+        .replace(/\r?\n/g, '\\n')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;');
+
+      const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Discovery Library//Upcoming Sessions//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:${session.id || Date.now()}@discoverylibrary.com.au`,
+        `DTSTAMP:${toIcsDate(new Date())}Z`,
+        `DTSTART:${toIcsDate(startDate)}`,
+        `DTEND:${toIcsDate(endDate)}`,
+        `SUMMARY:${cleanTitle}`,
+        `DESCRIPTION:${desc}`,
+        `LOCATION:Discovery Library Online Session (${session.timezone || 'AEST'})`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}-session.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      if (onNotify) {
+        onNotify(`Calendar event (.ics) downloaded for "${cleanTitle}".`);
+      }
+    } catch (err) {
+      console.error('Error generating calendar event:', err);
+      if (onNotify) onNotify('Could not download calendar file.');
+    }
   };
 
   const handlePlayRecording = (s) => {
@@ -67,7 +187,7 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
     <div className="page page-sessions" style={{ paddingTop: 36, paddingBottom: 100 }}>
       <div className="wrap">
         {/* Clean Back Button - No random pill */}
-        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+        <div style={{ display: 'flex', textAlign: 'left', marginBottom: 20, gap: 20 }}>
           <RippleButton
             as={Link}
             to="/"
@@ -76,34 +196,6 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
           >
             <Icon name="arrowLeft" />
             Back to Home
-          </RippleButton>
-        </div>
-
-        {/* Section Header with Disciplined Typography */}
-        <Reveal className="sh">
-          <h2>
-            Workshops & <span className="hl-word hl-gold">Sessions</span>
-          </h2>
-          <p>
-            Join upcoming live referencing clinics and workshops, or stream previous session recordings on demand.
-          </p>
-        </Reveal>
-
-        {/* Quick Jump Navigation */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 40, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <RippleButton
-            as="a"
-            href="#upcoming-sessions-section"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById('upcoming-sessions-section')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="btn btn-ghost"
-            style={{ borderRadius: 100, minWidth: 190, justifyContent: 'center' }}
-            rippleColor="var(--em)"
-          >
-            <Icon name="calendar" />
-            Upcoming Sessions {hasLiveUpcomingSessions ? `(${upcomingSessions.length})` : ''}
           </RippleButton>
 
           <RippleButton
@@ -118,23 +210,32 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
             rippleColor="var(--gold)"
           >
             <Icon name="record" />
-            Previous Recorded Sessions ({previousSessions.length})
+            Go to Previous Recorded Sessions 
           </RippleButton>
+
         </div>
+
+        {/* Section Header with Disciplined Typography */}
+        <Reveal className="sh" style={{marginLeft: 0}}>
+          <h2>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Upcoming</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Sessions
+            </GradientText>
+          </h2>
+          <p>
+            Join upcoming live referencing clinics and workshops.
+          </p>
+        </Reveal>
 
         {/* =========================================================================
             SECTION 1 [FIRST]: UPCOMING SESSIONS
             ========================================================================= */}
         <div id="upcoming-sessions-section" style={{ scrollMarginTop: 90 }}>
-          <Reveal className="sh" style={{ marginBottom: 24, textAlign: 'left' }}>
-            <h3 style={{ fontSize: 24, marginBottom: 6, color: 'var(--cream)', fontWeight: 600 }}>
-              Upcoming <span className="hl-word hl-gold">Sessions</span>
-            </h3>
-            <p style={{ margin: 0, fontSize: 15 }}>
-              Reserve your spot in upcoming live clinics, assessment workshops, and compliance briefings.
-            </p>
-          </Reveal>
-
           {isInitialLoading ? (
             <div className="glass panel" style={{ padding: 40, textAlign: 'center', color: 'var(--sub)' }}>
               Loading upcoming session schedule...
@@ -182,46 +283,97 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
             <div style={{ display: 'grid', gap: 16 }}>
               {upcomingSessions.map((s, idx) => {
                 const isConfirmed = confirmedSessions.has(s.title);
+                const sessionId = s.id || s.title;
+                const isExpanded = expandedSessions.has(sessionId);
+
+                // Exclude {AEDT} or {AEST} from displaying in website title
+                const displayTitle = (s.title || '')
+                  .replace(/\s*\{(AEDT|AEST)\}\s*/gi, ' ')
+                  .replace(/\s{2,}/g, ' ')
+                  .trim();
+
+                // Get timezone directly from time field (e.g. "3:00 PM – 4:00 PM AEST")
+                let displayTime = s.time || '';
+                const hasTzInTime = /\b(AEST|AEDT|AWST|ACST|ACDT)\b/i.test(displayTime);
+                if (!hasTzInTime && s.timezone) {
+                  displayTime = `${displayTime} ${s.timezone}`;
+                }
+
                 return (
-                  <Reveal key={s.id || s.title} delay={idx * 0.05}>
+                  <Reveal key={sessionId} delay={idx * 0.05}>
                     <div
-                      className={`glass panel c-${s.cat}`}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(60px, 76px) 1fr auto',
-                        gap: 20,
-                        alignItems: 'center',
-                        padding: '20px 24px',
-                        textAlign: 'left',
-                      }}
+                      className={`glass panel c-${s.cat} upcoming-session-card`}
                     >
                       <div className="datebadge" style={{ width: 66, height: 70 }}>
                         <b style={{ fontSize: 24 }}>{s.d}</b>
                         <span style={{ fontSize: 12 }}>{s.mon}</span>
                       </div>
 
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                          <span className="typetag">{s.type}</span>
-                          <span style={{ fontSize: 13, color: 'var(--sub)' }}>{s.wd} · {s.time}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ marginBottom: 6 }}>
+                          <span style={{ fontSize: 13.5, color: 'var(--sub)' }}>{s.wd} · {displayTime}</span>
                         </div>
-                        <h4 style={{ fontSize: 17.5, margin: '0 0 4px', color: 'var(--cream)', fontWeight: 600 }}>
-                          {s.title}
+                        <h4 style={{ fontSize: 17.5, margin: '0 0 8px 0', color: 'var(--cream)', fontWeight: 600 }}>
+                          {displayTitle}
                         </h4>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(sessionId)}
+                            className="session-expand-toggle"
+                            aria-expanded={isExpanded}
+                            title={isExpanded ? 'Hide session description' : 'View session description'}
+                          >
+                            <span>{isExpanded ? 'Hide details' : 'View details'}</span>
+                            <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div>
+                      <div className="session-action-col">
+                        <SpecularButton
+                          as="button"
+                          type="button"
+                          onClick={() => handleSaveToCalendar(s)}
+                          className="btn btn-em btn-sm save-calendar-btn"
+                          radius={12}
+                          lineColor="#ffffff"
+                          baseColor="#19D68A"
+                          intensity={1.25}
+                          title="Save session to your calendar (.ics)"
+                        >
+                          <Icon name="calendar" />
+                          Save to Calendar
+                        </SpecularButton>
+
                         <SpecularButton
                           as="button"
                           type="button"
                           onClick={() => handleBook(s)}
-                          className={isConfirmed ? 'btn btn-em btn-sm' : 'btn btn-gold btn-sm'}
-                          radius={10}
+                          className="btn btn-gold btn-sm reserve-spot-btn"
+                          radius={12}
+                          lineColor="#ffffff"
+                          baseColor="#FFC83A"
+                          intensity={1.25}
                         >
                           <Icon name={isConfirmed ? 'check' : 'calendar'} />
                           {isConfirmed ? 'Reserved' : 'Reserve Spot'}
                         </SpecularButton>
                       </div>
+
+                      {isExpanded && (
+                        <div className="session-description-panel">
+                          <div className="session-description-icon">
+                            <Icon name="info" />
+                          </div>
+                          <div className="session-description-content">
+                            <div className="session-description-label">Session Overview</div>
+                            <p className="session-description-text">
+                              {s.desc || 'Interactive live referencing clinic covering citation mechanics, ASQA evidence requirements, and Q&A with academic mentors.'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </Reveal>
                 );
@@ -230,13 +382,22 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
           )}
         </div>
 
+       
+
         {/* =========================================================================
             SECTION 2 [SECOND]: PREVIOUS RECORDED SESSIONS (Same Cards as Videos Page)
             ========================================================================= */}
         <div id="previous-recordings" style={{ scrollMarginTop: 90, marginTop: 64 }}>
           <Reveal className="sh" style={{ marginBottom: 24, textAlign: 'left' }}>
             <h3 style={{ fontSize: 24, marginBottom: 6, color: 'var(--cream)', fontWeight: 600 }}>
-              Previous Recorded <span className="hl-word hl-gold">Sessions</span>
+              <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Previous Recorded</span>{' '}
+              <GradientText
+                colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+                animationSpeed={5}
+                style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+              >
+                Sessions
+              </GradientText>
             </h3>
             <p style={{ margin: 0, fontSize: 15 }}>
               Catch up on past live clinics, workshops, and policy briefings on demand with full trainer guidance.
@@ -388,11 +549,11 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                           as="button"
                           type="button"
                           onClick={() => handlePlayRecording(s)}
-                          className="btn btn-gold btn-sm"
+                          className="btn btn-ghost btn-sm"
                           radius={10}
-                          style={{ flex: 1, justifyContent: 'center' }}
+                          style={{ flex: 1, width: '100%', justifyContent: 'center' }}
                         >
-                          <Icon name="play" /> Watch Recording
+                          Watch Recording <Icon name="arrow" style={{ width: 14, height: 14 }} />
                         </SpecularButton>
                       </div>
                     </div>
@@ -442,7 +603,7 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
           </div>
         )}
 
-        {/* RSVP Modal */}
+        {/* RSVP Modal with Gravity Form Mount */}
         {rsvpSession && (
           <div
             className="backdrop show"
@@ -450,34 +611,61 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
             aria-modal="true"
             onClick={(e) => { if (e.target === e.currentTarget) setRsvpSession(null); }}
           >
-            <div className="modal" style={{ width: 480 }}>
-              <h3 style={{ fontSize: 20, marginBottom: 6, color: 'var(--cream)', textAlign: 'left' }}>
-                Reserve Spot: {rsvpSession.title}
-              </h3>
-              <p style={{ color: 'var(--sub)', fontSize: 14, marginBottom: 20, textAlign: 'left' }}>
-                {rsvpSession.wd} · {rsvpSession.d} {rsvpSession.mon} · {rsvpSession.time}
-              </p>
-              <form onSubmit={submitRsvp}>
-                <div className="sbox" style={{ marginBottom: 16 }}>
-                  <Icon name="lock" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="Enter your student email..."
-                    value={studentEmail}
-                    onChange={(e) => setStudentEmail(e.target.value)}
-                    autoFocus
-                  />
+            <div className="modal" style={{ width: 560, maxWidth: '95vw', padding: '28px 24px', textAlign: 'left' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+                <div>
+                  <h3 style={{ fontSize: 20, marginBottom: 4, color: 'var(--cream)', fontWeight: 700 }}>
+                    Reserve Spot: {(rsvpSession.title || '').replace(/\s*\{(AEDT|AEST)\}\s*/gi, ' ').trim()}
+                  </h3>
+                  <p style={{ color: 'var(--sub)', fontSize: 13.5, margin: 0 }}>
+                    {rsvpSession.wd} · {rsvpSession.d} {rsvpSession.mon} · {rsvpSession.time}
+                  </p>
                 </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setRsvpSession(null)} className="btn btn-ghost">
-                    Cancel
-                  </button>
-                  <SpecularButton type="submit" className="btn btn-gold" radius={10}>
-                    Confirm Reservation
-                  </SpecularButton>
+                <button
+                  type="button"
+                  onClick={() => setRsvpSession(null)}
+                  aria-label="Close"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--line)',
+                    color: 'var(--sub)',
+                    borderRadius: 8,
+                    width: 34,
+                    height: 34,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+
+              {/* Designated Mount Container for WordPress Gravity Forms Session Reservations */}
+              <div
+                id="gravity-form-session-mount"
+                className="gravity-form-mount-target"
+                data-gform-mount="true"
+                data-session-id={rsvpSession.id}
+                data-session-title={rsvpSession.title}
+                data-session-date={`${rsvpSession.wd} · ${rsvpSession.d} ${rsvpSession.mon} · ${rsvpSession.time}`}
+              >
+                <div className="gform-mount-placeholder">
+                  <div className="gf-placeholder-icon">
+                    <Icon name="calendar" />
+                  </div>
+                  <div className="gf-placeholder-title">
+                    Gravity Form Reservation Mount
+                  </div>
+                  <p className="gf-placeholder-text">
+                    Target container configured for WordPress Gravity Forms. All fields, labels, inputs, and submission buttons inherit the Discovery Library theme.
+                  </p>
+                  <code className="gf-placeholder-code">
+                    #gravity-form-session-mount
+                  </code>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}

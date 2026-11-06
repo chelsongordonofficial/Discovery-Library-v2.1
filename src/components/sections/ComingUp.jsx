@@ -72,19 +72,37 @@ function ComingUp() {
           /* Live upcoming sessions from WordPress */
           <>
             <Reveal className="glass upnext">
-              {wpUpcomingSessions.slice(0, 3).map((s, i) => (
-                <Reveal key={s.id || s.title} className={`uprow c-${s.cat}`} delay={i * 0.1}>
-                  <div className="datebadge"><b>{s.d}</b><span>{s.mon}</span></div>
-                  <div className="uprow-info" style={{ textAlign: 'left', justifySelf: 'start' }}>
-                    <h3 style={{ textAlign: 'left' }}>{s.title}</h3>
-                    <div className="m" style={{ textAlign: 'left' }}>{s.wd} · {s.time}</div>
-                  </div>
-                  <span className="typetag">
-                    {getSessionTypeIcon(s.type)}
-                    <span>{s.type}</span>
-                  </span>
-                </Reveal>
-              ))}
+              {wpUpcomingSessions.slice(0, 3).map((s, i) => {
+                const tzMatch = (s.rawTitle || s.title || '').match(/\{(AEDT|AEST)\}/i);
+                const detectedTz = tzMatch ? tzMatch[1].toUpperCase() : (s.timezone || null);
+                const displayTitle = (s.title || '')
+                  .replace(/\s*\{(AEDT|AEST)\}\s*/gi, ' ')
+                  .replace(/\s{2,}/g, ' ')
+                  .trim();
+
+                let displayTime = s.time || '';
+                if (detectedTz) {
+                  if (/\b(AEST|AEDT)\b/i.test(displayTime)) {
+                    displayTime = displayTime.replace(/\b(AEST|AEDT)\b/gi, detectedTz);
+                  } else {
+                    displayTime = `${displayTime} ${detectedTz}`;
+                  }
+                }
+
+                return (
+                  <Reveal key={s.id || s.title} className={`uprow c-${s.cat}`} delay={i * 0.1}>
+                    <div className="datebadge"><b>{s.d}</b><span>{s.mon}</span></div>
+                    <div className="uprow-info" style={{ textAlign: 'left', justifySelf: 'start' }}>
+                      <h3 style={{ textAlign: 'left' }}>{displayTitle}</h3>
+                      <div className="m" style={{ textAlign: 'left' }}>{s.wd} · {displayTime}</div>
+                    </div>
+                    <span className="typetag">
+                      {getSessionTypeIcon(s.type)}
+                      <span>{s.type}</span>
+                    </span>
+                  </Reveal>
+                );
+              })}
             </Reveal>
             <Reveal style={{ marginTop: 26 }}>
               <RippleButton as={Link} to={SITE_URLS.sessions} className="btn btn-ghost" rippleColor="var(--em)">
@@ -132,16 +150,8 @@ function ComingUp() {
                   intensity={1.2}
                 >
                   <Icon name="record" />
-                  View Session Recordings
+                  View Previous Session Recordings
                 </SpecularButton>
-                <RippleButton
-                  as={Link}
-                  to={SITE_URLS.contact}
-                  className="btn btn-ghost"
-                  rippleColor="var(--em)"
-                >
-                  Book a Consultation
-                </RippleButton>
               </div>
             </div>
           </Reveal>

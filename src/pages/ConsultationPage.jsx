@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
+import RippleButton from '../components/ui/RippleButton';
+import GradientText from '../components/ui/GradientText';
 
 const CAMPUSES = [
   'Brisbane Campus Library',
@@ -69,7 +71,16 @@ export default function ConsultationPage({ onNotify }) {
         </div>
 
         <Reveal className="sh">
-          <h2>Book a One-on-One <span className="hl-word hl-gold">Consultation</span></h2>
+          <h2>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Book a One-on-One</span>{' '}
+            <GradientText
+              colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
+              animationSpeed={5}
+              style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
+            >
+              Consultation
+            </GradientText>
+          </h2>
           <p>
             Get dedicated 1-on-1 guidance with our qualified librarians and learning mentors. Available in person across all five campuses or online via Zoom.
           </p>
