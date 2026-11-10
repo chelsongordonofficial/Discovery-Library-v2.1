@@ -46,7 +46,7 @@ export function resolveUrl(to) {
   if (clean.startsWith('session') || clean.startsWith('upcoming') || clean.startsWith('training')) return '/sessions';
   if (clean.startsWith('referenc')) return '/referencing';
   if (clean.startsWith('newsletter')) return '/newsletter';
-  if (clean.startsWith('llnd') || clean.startsWith('myllnd')) return 'http://myllnd.com/login';
+  if (clean.startsWith('llnd') || clean.startsWith('myllnd')) return 'https://myllnd.com/login';
   if (clean.startsWith('consult') || clean.startsWith('contact')) return '/contact';
   if (clean.includes('link') || clean.startsWith('tool')) return '/useful-links';
   if (clean.startsWith('record')) return '/recordings';
