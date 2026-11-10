@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { WpProvider } from './context/WpContext';
 import { RouterProvider, useRouter } from './context/RouterContext';
 import Icon from './components/ui/Icon';
@@ -170,7 +171,17 @@ function AppLayout() {
       />
 
       <main id="view" ref={mainRef} tabIndex={-1}>
-        {activePageComponent}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentRoute.split('?')[0].replace(/^[#/]+/, '').toLowerCase() || 'home'}
+            initial={{ opacity: 0, y: 12, filter: 'blur(3px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -8, filter: 'blur(2px)' }}
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {activePageComponent}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <div ref={footRef}>

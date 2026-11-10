@@ -94,35 +94,6 @@ export default function NewsletterPage({ onNotify }) {
           </p>
         </Reveal>
 
-        {/* Subscribe banner */}
-        <Reveal className="glass panel" style={{ marginBottom: 36, padding: '24px 28px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, alignItems: 'center' }}>
-            <div style={{ textAlign: 'left' }}>
-              <h3 style={{ fontSize: 18.5, marginBottom: 4, color: 'var(--cream)', fontWeight: 600 }}>
-                Subscribe to The Discovery Herald
-              </h3>
-              <p style={{ color: 'var(--sub)', fontSize: 14, margin: 0 }}>
-                Get referencing updates and workshop schedules delivered directly to your student email.
-              </p>
-            </div>
-            <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <div className="sbox" style={{ margin: 0, minWidth: 260 }}>
-                <Icon name="newspaper" />
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter your student email..."
-                  value={subEmail}
-                  onChange={(e) => setSubEmail(e.target.value)}
-                />
-              </div>
-              <SpecularButton type="submit" className="btn btn-gold" radius={10}>
-                Subscribe
-              </SpecularButton>
-            </form>
-          </div>
-        </Reveal>
-
         {/* Newsletter list */}
         <div style={{ display: 'grid', gap: 16 }}>
           {displayNewsletters.map((n, i) => (

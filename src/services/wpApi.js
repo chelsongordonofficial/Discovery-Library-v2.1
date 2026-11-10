@@ -454,22 +454,23 @@ export function getMergedUpcomingSessions(wpSessions = [], isLiveConnected = tru
 }
 
 /**
- * Returns merged previous/past sessions:
- * Live WP past sessions first (e.g. Academic Misconduct Policy, 2026-08-21),
- * followed by fallback past sessions.
+ * Returns previous/past sessions:
+ * When WordPress data is available, return ONLY the live WP previous sessions.
+ * Show fallback data only if the REST endpoint is disconnected/errored.
  */
-export function getMergedPreviousSessions(wpSessions = []) {
+export function getMergedPreviousSessions(wpSessions = [], isLiveConnected = true) {
   const { previous: wpPrevious } = partitionSessions(wpSessions);
 
-  if (!wpPrevious || wpPrevious.length === 0) {
-    return FALLBACK_PREVIOUS_SESSIONS;
+  if (wpPrevious && wpPrevious.length > 0) {
+    return wpPrevious;
   }
 
-  const remainingFallbacks = FALLBACK_PREVIOUS_SESSIONS.filter(
-    (fb) => !wpPrevious.some((w) => w.title.toLowerCase() === fb.title.toLowerCase())
-  );
+  // If live connection is active but no past sessions are recorded yet
+  if (isLiveConnected && wpSessions.length > 0) {
+    return [];
+  }
 
-  return [...wpPrevious, ...remainingFallbacks];
+  return FALLBACK_PREVIOUS_SESSIONS;
 }
 
 /**
@@ -484,13 +485,14 @@ export function getNextUpcomingSession(upcomingSessions = []) {
 }
 
 /**
- * Merges live WP training videos into the search videos format
+ * Returns search videos:
+ * When live WP training videos exist, use live WP training videos as Priority 1.
+ * Return fallback only when disconnected/empty.
  */
 export function getMergedSearchVideos(wpVideos = []) {
-  if (!wpVideos || wpVideos.length === 0) {
-    return SEARCH_VIDEOS;
+  if (wpVideos && wpVideos.length > 0) {
+    return wpVideos.map((v) => [v.title, v.desc, v.video_url]);
   }
 
-  const liveSearchItems = wpVideos.map((v) => [v.title, v.desc, v.video_url]);
-  return [...liveSearchItems, ...SEARCH_VIDEOS];
+  return SEARCH_VIDEOS;
 }

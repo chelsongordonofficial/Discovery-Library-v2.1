@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { motion } from 'motion/react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
@@ -258,9 +259,21 @@ export default function ReferencingPage({ onCopy, onNotify }) {
                       aria-selected={isActive}
                       className={`ref-module-card${isActive ? ' active' : ''}`}
                       onClick={() => handleSelectSection(sec)}
+                      style={{ position: 'relative' }}
                     >
-                      <span className="mod-num">{sec.num}</span>
-                      <span className="mod-title">{sec.title}</span>
+                      {isActive && (
+                        <motion.span
+                          layoutId="activeRefModulePill"
+                          className="ref-module-active-pill"
+                          transition={{
+                            type: 'spring',
+                            stiffness: 450,
+                            damping: 32,
+                          }}
+                        />
+                      )}
+                      <span className="mod-num" style={{ position: 'relative', zIndex: 2 }}>{sec.num}</span>
+                      <span className="mod-title" style={{ position: 'relative', zIndex: 2 }}>{sec.title}</span>
                     </button>
                   );
                 })}
@@ -290,9 +303,21 @@ export default function ReferencingPage({ onCopy, onNotify }) {
                       aria-selected={isActive}
                       className={`ref-subtab-pill${isActive ? ' active' : ''}`}
                       onClick={() => setActiveTabId(tab.id)}
+                      style={{ position: 'relative' }}
                     >
-                      <span className="subtab-num">{tab.tabNum}</span>
-                      <span>{tab.title}</span>
+                      {isActive && (
+                        <motion.span
+                          layoutId="activeRefSubtabPill"
+                          className="ref-subtab-active-pill"
+                          transition={{
+                            type: 'spring',
+                            stiffness: 450,
+                            damping: 32,
+                          }}
+                        />
+                      )}
+                      <span className="subtab-num" style={{ position: 'relative', zIndex: 2 }}>{tab.tabNum}</span>
+                      <span style={{ position: 'relative', zIndex: 2 }}>{tab.title}</span>
                     </button>
                   );
                 })}

@@ -1201,11 +1201,25 @@ footer.foot{position:relative;z-index:2;border-top:1px solid var(--line);margin-
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
-.ref-module-card.active {
-  background: rgba(255, 200, 58, 0.12);
+.ref-module-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ref-module-active-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 200, 58, 0.14);
   border: 1px solid var(--gold);
-  box-shadow: 0 4px 22px rgba(255, 200, 58, 0.18);
+  box-shadow: 0 4px 22px rgba(255, 200, 58, 0.22);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ref-module-card.active {
   color: var(--cream);
+  border-color: transparent;
 }
 
 .ref-module-card .mod-num {
@@ -1321,12 +1335,26 @@ footer.foot{position:relative;z-index:2;border-top:1px solid var(--line);margin-
   transform: translateY(-1px);
 }
 
-.ref-subtab-pill.active {
-  background: rgba(25, 214, 138, 0.16);
+.ref-subtab-pill {
+  position: relative;
+  overflow: hidden;
+}
+
+.ref-subtab-active-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(25, 214, 138, 0.18);
   border: 1px solid var(--em);
+  box-shadow: 0 2px 14px rgba(25, 214, 138, 0.28);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ref-subtab-pill.active {
   color: var(--cream);
   font-weight: 600;
-  box-shadow: 0 2px 14px rgba(25, 214, 138, 0.25);
+  border-color: transparent;
 }
 
 .ref-subtab-pill .subtab-num {

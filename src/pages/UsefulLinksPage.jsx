@@ -102,23 +102,24 @@ export default function UsefulLinksPage({ onNotify }) {
   const [activeTab, setActiveTab] = useState('all');
 
   const directoryData = useMemo(() => {
-    const list = [...FALLBACK_DIRECTORY];
-
+    // Live data Priority 1: If live WordPress links exist, return ONLY live items
     if (usefulLinks && usefulLinks.length > 0) {
-      const wpCategory = {
-        category: 'Featured Useful Links & Videos',
-        items: usefulLinks.map((item) => ({
-          name: item.title,
-          desc: item.desc || 'Curated link and instructional media from Discovery Library.',
-          url: item.url,
-          tag: 'Live Resource',
-          icon: 'link',
-        })),
-      };
-      return [wpCategory, ...list];
+      return [
+        {
+          category: 'Useful Links & Videos',
+          items: usefulLinks.map((item) => ({
+            name: item.title,
+            desc: item.desc || 'Curated link and instructional media from Discovery Library.',
+            url: item.url,
+            tag: item.tag || 'Official Resource',
+            icon: 'link',
+          })),
+        },
+      ];
     }
 
-    return list;
+    // Fallback data: Shown strictly when REST endpoint is unreachable or empty
+    return FALLBACK_DIRECTORY;
   }, [usefulLinks]);
 
   const filteredCategories = useMemo(() => {

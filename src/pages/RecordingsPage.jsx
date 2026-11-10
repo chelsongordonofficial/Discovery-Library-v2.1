@@ -59,7 +59,13 @@ export default function RecordingsPage({ onNotify }) {
       isWp: !!s.isWp,
     }));
 
-    return [...liveItems, ...FALLBACK_RECORDINGS];
+    // Live data Priority 1: If live WordPress session recordings exist, return ONLY live items
+    if (liveItems && liveItems.length > 0) {
+      return liveItems;
+    }
+
+    // Fallback data: Shown strictly when REST endpoint is unreachable or empty
+    return FALLBACK_RECORDINGS;
   }, [previousSessions]);
 
   const filtered = useMemo(() => {

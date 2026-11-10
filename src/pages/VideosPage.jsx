@@ -46,7 +46,13 @@ export default function VideosPage({ onNotify }) {
       isWp: false,
     }));
 
-    return [...liveItems, ...fallbackSearchItems, ...wordSeriesItems];
+    // Live data Priority 1: If live WordPress training videos exist, return ONLY live items
+    if (liveItems && liveItems.length > 0) {
+      return liveItems;
+    }
+
+    // Fallback data: Shown strictly when REST endpoint is unreachable or empty
+    return [...fallbackSearchItems, ...wordSeriesItems];
   }, [wpVideos]);
 
   const filteredVideos = useMemo(() => {
