@@ -57,16 +57,16 @@ function AppLayout() {
     const titles = {
       '': 'Discovery Library — Comprehensive Digital Library & Learning Support',
       'home': 'Discovery Library — Comprehensive Digital Library & Learning Support',
-      'resources': 'Library Resources & Directory — Discovery Library',
-      'useful-links': 'Useful Links & Videos Directory — Discovery Library',
-      'links': 'Useful Links & Videos Directory — Discovery Library',
-      'videos': 'Training Videos & Masterclasses — Discovery Library',
-      'sessions': 'Workshops & Upcoming Sessions — Discovery Library',
-      'recordings': 'Previous Recorded Sessions Archive — Discovery Library',
-      'referencing': 'APA 7th Referencing Guide & Citation Generator — Discovery Library',
-      'newsletter': 'The Discovery Herald Newsletters — Discovery Library',
-      'contact': 'Contact Us & Campus Library Hubs — Discovery Library',
-      'llnd': 'My LLND Learning Support Portal — Discovery Library',
+      'resources': 'Resources',
+      'useful-links': 'Useful Links & Videos',
+      'links': 'Useful Links & Videos',
+      'videos': 'Training Videos',
+      'sessions': 'Sessions',
+      'recordings': 'Session Recordings',
+      'referencing': 'Referencing',
+      'newsletter': 'Newsletter',
+      'contact': 'Contact Us & FAQ',
+      'llnd': 'My LLND Portal',
     };
     document.title = titles[clean] || 'Discovery Library — Comprehensive Digital Library & Learning Support';
   }, [currentRoute]);

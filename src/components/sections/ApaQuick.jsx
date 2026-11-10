@@ -61,14 +61,14 @@ function ApaQuick({ onCopy }) {
           </p>
           <SpecularButton
             as={Link}
-            to={SITE_URLS.referencing}
+            to={`/referencing?sec=${q.sectionId || 'articles'}&tab=${q.tabId || '4-1'}`}
             className="btn btn-gold btn-lg"
             radius={14}
             lineColor="#ffffff"
             baseColor="#ffd860"
             intensity={1.2}
           >
-            Open the referencing guide
+            Open {q.k} in Referencing Guide
           </SpecularButton>
         </Reveal>
         <Reveal className="glass quick" delay={0.12}>
@@ -114,6 +114,32 @@ function ApaQuick({ onCopy }) {
               <CiteRow label="Reference list" text={q.ref} onCopy={onCopy} />
               <CiteRow label="In-text" text={q.it} onCopy={onCopy} />
               <p className="note">{q.n}</p>
+              <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+                <Link
+                  to={`/referencing?sec=${q.sectionId || 'articles'}&tab=${q.tabId || '4-1'}`}
+                  className="link-hover"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 13,
+                    color: 'var(--gold)',
+                    fontWeight: 600,
+                    padding: '5px 12px',
+                    borderRadius: 8,
+                    background: 'rgba(255, 200, 58, 0.08)',
+                    border: '1px solid rgba(255, 200, 58, 0.22)',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <span>Explore full {q.k} rules in Guide</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
             </motion.div>
           </AnimatePresence>
         </Reveal>

@@ -32,8 +32,14 @@ const FAQS = [
   },
 ];
 
-export default function ContactPage() {
+import { useGravityFormMount } from '../services/gravityFormHandler';
+
+export default function ContactPage({ onNotify }) {
   const [openFaq, setOpenFaq] = useState(null);
+
+  useGravityFormMount('gravity-form-mount', () => {
+    if (onNotify) onNotify('Consultation request received! Thank you.');
+  });
 
   return (
     <div className="page page-contact" style={{ paddingTop: 36, paddingBottom: 100 }}>

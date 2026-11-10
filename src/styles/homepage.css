@@ -76,7 +76,7 @@ nav.top .logo,
 nav.top.scrolled{background:rgba(3,20,13,.84);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
 .brand{display:inline-flex;align-items:center;gap:11px;font-family:var(--f-head);font-weight:800;font-size:20px;letter-spacing:-.02em;flex-shrink:0;text-decoration:none;}
 .brand-beacon{width:28px;height:28px;border-radius:50%;background:rgba(25,214,138,0.06);border:1px solid rgba(255,200,58,0.35);box-shadow:0 0 10px rgba(25,214,138,0.25);flex-shrink:0;}
-.navlinks{display:flex;gap:4px;font-size:14.5px;font-weight:500;font-family: var(--f-head);}
+.navlinks{display:flex;gap:12px;font-size:14.5px;font-weight:500;font-family: var(--f-head);}
 .navlinks a{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:100px;color:#d8eadf;transition:background .2s,color .2s;white-space:nowrap;}
 .navlinks a:hover{background:rgba(255,255,255,.06);}
 .navlinks a svg{width:30px;height:30px;opacity:1;}
@@ -150,9 +150,10 @@ main#view{position:relative;z-index:2;outline:none;min-height:70vh;}
 
 /* hero */
 .hero{position:relative;min-height:calc(100svh - 76px);display:flex;align-items:center;padding:30px 0 110px;}
-.hero-grid{grid-template-columns:minmax(0,600px) 1fr;gap:40px;align-items:center;width:100%;}
-.hero-text::before{content:"";position:absolute;inset:-80px -100px -100px -80px;background:radial-gradient(ellipse 75% 70% at 35% 45%,rgba(3,20,13,.68) 0%,rgba(3,20,13,.50) 40%,rgba(3,20,13,.22) 70%,transparent 100%);pointer-events:none;z-index:-1;border-radius:50%;filter:blur(36px);opacity:.78;}
-.chip{display:inline-flex;align-items:center;gap:10px;padding:7px 15px 7px 11px;border-radius:100px;background:rgba(8,42,30,.82);border:1px solid var(--line);font-size:13.5px;color:#d8eadf;
+.hero-grid{grid-template-columns:1fr;gap:40px;align-items:center;justify-items:center;width:100%;text-align:center;}
+.hero-text{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:100%;max-width:760px;margin:0 auto;position:relative;}
+.hero-text::before{content:"";position:absolute;inset:-80px -100px -100px -80px;background:radial-gradient(ellipse 75% 70% at 50% 45%,rgba(3,20,13,.68) 0%,rgba(3,20,13,.50) 40%,rgba(3,20,13,.22) 70%,transparent 100%);pointer-events:none;z-index:-1;border-radius:50%;filter:blur(36px);opacity:.78;}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:7px 15px 7px 11px;border-radius:100px;background:rgba(8,42,30,.82);border:1px solid var(--line);font-size:13.5px;color:#d8eadf;margin:0 auto;
   opacity:0;animation:rise2 .8s .1s cubic-bezier(.2,.8,.2,1) forwards;}
 .chip .live{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 0 rgba(255,200,58,.7);animation:ping 1.8s ease-out infinite;}
 @keyframes ping{to{box-shadow:0 0 0 12px rgba(255,200,58,0);}}
@@ -162,12 +163,15 @@ main#view{position:relative;z-index:2;outline:none;min-height:70vh;}
   letter-spacing: 0px;
   line-height: 1.04;
   margin-top: 22px;
-  max-width: 600px;
-  margin-left: 20px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
 }
 
 .dl-app h1.mega .hl {
-  display: inline-flex;
+  display: flex;
+  justify-content: center;
 }
 
 .dl-app h1.mega .word {
@@ -224,7 +228,7 @@ main#view{position:relative;z-index:2;outline:none;min-height:70vh;}
 .hl>span{display:block;transform:translateY(112%);animation:rise .95s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:calc(.16s * var(--i) + .2s);}
 @keyframes rise{to{transform:none;}}
 @keyframes rise2{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
-.hero-sub{justify-self:center;margin-top:14px !important;font-size:clamp(15.5px,1.5vw,18.5px);color:var(--sub);max-width:500px;line-height:1.65;opacity:0;animation:rise2 .9s .85s cubic-bezier(.2,.8,.2,1) forwards;}
+.hero-sub{justify-self:center;margin-top:14px !important;margin-left:auto;margin-right:auto;text-align:center;font-size:clamp(15.5px,1.5vw,18.5px);color:var(--sub);max-width:560px;line-height:1.65;opacity:0;animation:rise2 .9s .85s cubic-bezier(.2,.8,.2,1) forwards;}
 .hero-cta{margin-top:32px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;opacity:0;animation:rise2 .9s 1.05s cubic-bezier(.2,.8,.2,1) forwards;}
 .hero-cta svg{width:25px;height:25px;opacity:1;margin-top: -5px;}
 .cue{position:absolute;left:calc(50% - 15.92px);bottom:26px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);opacity:0;animation:rise2 1s 1.6s forwards;}
@@ -1126,6 +1130,444 @@ footer.foot{position:relative;z-index:2;border-top:1px solid var(--line);margin-
     justify-content: center !important;
   }
 }
+
+/* ==========================================================================
+   Referencing Guide Page Theme Styles (Hierarchical Architecture)
+   ========================================================================== */
+
+/* 1. Parent Hierarchy Container (Level 1: 8 Core Modules with dark glass backlayer) */
+.ref-parent-hierarchy {
+  background: rgba(2, 14, 9, 0.65);
+  border: 1px solid rgba(120, 240, 190, 0.18);
+  border-radius: 18px;
+  padding: 20px 22px;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.ref-hierarchy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ref-hierarchy-label {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cream);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ref-hierarchy-label b {
+  color: var(--gold);
+}
+
+.ref-parent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.ref-module-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(120, 240, 190, 0.14);
+  color: var(--cream);
+  font-family: var(--f-body);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.ref-module-card:hover {
+  background: rgba(25, 214, 138, 0.09);
+  border-color: rgba(25, 214, 138, 0.38);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ref-module-card.active {
+  background: rgba(255, 200, 58, 0.12);
+  border: 1px solid var(--gold);
+  box-shadow: 0 4px 22px rgba(255, 200, 58, 0.18);
+  color: var(--cream);
+}
+
+.ref-module-card .mod-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--sub);
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.ref-module-card.active .mod-num {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.ref-module-card .mod-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: inherit;
+  flex: 1;
+}
+
+/* 2. Child Hierarchy Container (Level 2: Sub-sections / Topics) */
+.ref-child-hierarchy {
+  background: rgba(2, 14, 9, 0.65);
+  border: 1px solid rgba(120, 240, 190, 0.18);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 26px;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.ref-child-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.ref-child-breadcrumb {
+  font-size: 13px;
+  color: var(--sub);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ref-child-breadcrumb .parent-crumb {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.ref-child-breadcrumb .sep {
+  opacity: 0.5;
+}
+
+.ref-child-breadcrumb .child-crumb {
+  color: var(--mint);
+  font-weight: 500;
+}
+
+.ref-child-count {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--sub);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.ref-subtab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ref-subtab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: var(--f-body);
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(120, 240, 190, 0.14);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.ref-subtab-pill:hover {
+  background: rgba(25, 214, 138, 0.08);
+  border-color: rgba(25, 214, 138, 0.3);
+  color: var(--cream);
+  transform: translateY(-1px);
+}
+
+.ref-subtab-pill.active {
+  background: rgba(25, 214, 138, 0.16);
+  border: 1px solid var(--em);
+  color: var(--cream);
+  font-weight: 600;
+  box-shadow: 0 2px 14px rgba(25, 214, 138, 0.25);
+}
+
+.ref-subtab-pill .subtab-num {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--mint);
+  background: rgba(25, 214, 138, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ref-subtab-pill.active .subtab-num {
+  background: var(--em);
+  color: #01160e;
+  font-weight: 700;
+}
+
+/* 3. Citation Card & Code Boxes (Complete 4-sided borders, NO left-only border) */
+.citation-box {
+  position: relative;
+  background: rgba(2, 14, 9, 0.65);
+  border: 1px solid rgba(120, 240, 190, 0.18);
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin: 14px 0;
+  color: var(--cream);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.65;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
+}
+
+.citation-box.citation-box-em {
+  border-color: rgba(25, 214, 138, 0.28);
+  background: rgba(2, 16, 10, 0.65);
+}
+
+.citation-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.citation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: rgba(255, 200, 58, 0.1);
+  border: 1px solid rgba(255, 200, 58, 0.28);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.citation-badge.badge-em {
+  color: var(--mint);
+  background: rgba(25, 214, 138, 0.1);
+  border-color: rgba(25, 214, 138, 0.28);
+}
+
+/* 4. Copy Button & User SVG Icon Styling */
+.citation-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(120, 240, 190, 0.18);
+  color: var(--sub);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--f-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.citation-copy-btn:hover {
+  background: rgba(255, 200, 58, 0.14);
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.citation-copy-btn .ic,
+.citation-copy-btn svg {
+  width: 15px !important;
+  height: 15px !important;
+  fill: currentColor !important;
+  stroke: none !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+}
+
+.citation-text {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #FFF8E1;
+  word-break: break-word;
+}
+
+.citation-note {
+  font-size: 13px;
+  color: var(--sub);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-style: italic;
+  line-height: 1.55;
+}
+
+/* Styled Referencing Tables (Complete 4-sided borders) */
+.ref-table-wrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 240, 190, 0.18);
+  background: rgba(2, 14, 9, 0.55);
+  margin: 18px 0 22px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--cream);
+}
+
+.ref-table th {
+  background: rgba(25, 214, 138, 0.08);
+  color: var(--mint);
+  font-family: var(--f-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 13px 18px;
+  border-bottom: 1px solid rgba(120, 240, 190, 0.2);
+}
+
+.ref-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+  line-height: 1.55;
+  color: var(--sub);
+}
+
+.ref-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ref-table td b,
+.ref-table td strong {
+  color: var(--cream);
+}
+
+/* Figure & Image display card (Complete 4-sided borders) */
+.ref-figure-card {
+  background: rgba(2, 14, 9, 0.6);
+  border: 1px solid rgba(120, 240, 190, 0.18);
+  border-radius: 16px;
+  padding: 22px;
+  margin: 20px 0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.ref-figure-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ref-figure-img-wrap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.ref-figure-caption {
+  font-size: 13px;
+  color: var(--sub);
+  line-height: 1.55;
+  font-style: italic;
+  padding-left: 4px;
+}
+
+.ref-figure-caption a {
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+}
+
+.ref-module-card{
+  padding: 5px !important;
+}
+
+.ref-subtab-pill{
+      padding: 5px 15px 5px 4px !important;
+}
+
+@media (max-width: 1024px) {
+  .ref-parent-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .ref-parent-hierarchy {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+  .ref-parent-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .ref-module-card {
+    padding: 12px 14px;
+  }
+  .ref-child-hierarchy {
+    padding: 14px 16px;
+  }
+  .ref-subtab-pill {
+    padding: 7px 12px;
+    font-size: 12.5px;
+  }
+}
+
 
 
 

@@ -61,7 +61,6 @@ function Hero({ cueHidden }) {
               </RippleButton>
             </div>
           </div>
-          <div />
         </div>
       </div>
       <div className="cue" aria-hidden="true" style={cueHidden ? { display: 'none' } : undefined}>

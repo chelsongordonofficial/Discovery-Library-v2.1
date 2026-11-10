@@ -43,15 +43,43 @@ const RES_CARDS = [
 ];
 
 const QUICK = [
-  { k: 'Journal article', ref: 'Lee, A. (2023). Enhancing student engagement in vocational education. Journal of VET Research, 12(3), 45–60. https://doi.org/10.1016/j.vet.2023.01.004', it: '(Lee, 2023)', n: 'Include volume, issue in parentheses, page range, and DOI URL whenever available.' },
-  { k: 'Webpage', ref: 'Nguyen, T. (2025, May 12). Managing academic momentum in blended learning. Discovery Learning Insights. https://discoverylibrary.com.au/resources/momentum', it: '(Nguyen, 2025)', n: 'Include the site name when it differs from the author. Provide full URL.' },
-  { k: 'Blog post', ref: 'Patel, R. (2025, June 3). Five principles for responsible AI usage in TAFE and VET. Education Tomorrow. https://educationtomorrow.edu.au/ai-principles', it: '(Patel, 2025)', n: 'Format like a webpage, specifying the specific blog publication name.' },
-  { k: 'eBook', ref: 'Smith, J. (2024). Essential vocational training and workplace assessment (2nd ed.). Academic Press. https://doi.org/10.1007/978-3-030-12345-6', it: '(Smith, 2024)', n: 'Include book edition in parentheses if applicable, followed by publisher and DOI/URL.' },
+  {
+    k: 'Journal article',
+    sectionId: 'articles',
+    tabId: '4-1',
+    ref: 'Moser, D. V., & Martin, P. R. (2012). A broader perspective on corporate social responsibility research in accounting. The Accounting Review, 87(3), 797–806. https://doi.org/10.2308/accr-10257',
+    it: '(Moser & Martin, 2012) — or — “Many large organisations adjusted their routine work after the Global Financial Crisis” (Smith, 2019, p. 1)',
+    n: 'Always provide a DOI when available. If unavailable, provide the direct journal homepage URL. Italicise the journal name and volume number.',
+  },
+  {
+    k: 'Webpage',
+    sectionId: 'internet',
+    tabId: '3-2',
+    ref: 'APA Style. (2019). Plagiarism. American Psychological Association. https://apastyle.apa.org/style-grammar-guidelines/citations/plagiarism',
+    it: '(APA Style, 2019) — or — “The students must use the library’s reference guides” (Anderson, para. 1)',
+    n: 'When personal author is not available, use the organization name. Do not italicise standard webpage titles. Include retrieval date only when content is frequently updated.',
+  },
+  {
+    k: 'Blog post',
+    sectionId: 'internet',
+    tabId: '3-3',
+    ref: 'Morphett, J. (2019, October 22). SEO analytics for free – combining Google search with the Moz API [Web blog post]. https://moz.com/blog/combining-google-search-with-moz-api',
+    it: '(Morphett, 2019) — or — Anderson (2019) recommended the library’s reference guides.',
+    n: 'Include [Web blog post] in square brackets after the title. For blog comments, use [Blog comment] and cite the thread.',
+  },
+  {
+    k: 'eBook',
+    sectionId: 'books',
+    tabId: '2-2',
+    ref: 'Cabana, D., Rölfer, L., Evadzi, P., & Celliers, L. (2023). Enabling climate change adaptation in coastal systems: A systematic literature review. Earth’s Future, 11, e2023EF003713. https://doi.org/10.1029/2023EF003713',
+    it: '(Cabana et al., 2023) — or — “Adaptation strategies must be flexible and responsive to changing climatic conditions” (Klein & Moser, 2021, p. 103)',
+    n: 'Always provide the DOI when available. If unavailable, provide the publisher homepage URL.',
+  },
 ];
 
 const NAV_LINKS = [
   { to: SITE_URLS.resources, label: 'Resources', icon: 'book' },
-  { to: SITE_URLS.videos, label: 'Videos', icon: 'video' },
+  { to: SITE_URLS.videos, label: 'Training Videos', icon: 'video' },
   { to: SITE_URLS.sessions, label: 'Sessions', icon: 'calendar' },
   { to: SITE_URLS.referencing, label: 'Referencing', icon: 'listCheck' },
   { to: SITE_URLS.newsletter, label: 'Newsletter', icon: 'newspaper' },
@@ -59,13 +87,13 @@ const NAV_LINKS = [
 
 const MOBILE_LINKS = [
   [SITE_URLS.home, 'Home'],
-  [SITE_URLS.resources, 'Library Resources'],
+  [SITE_URLS.resources, 'Resources'],
   [SITE_URLS.videos, 'Training Videos'],
   [SITE_URLS.links, 'Useful Links & Videos'],
   [SITE_URLS.recordings, 'Session Recordings'],
-  [SITE_URLS.sessions, 'Upcoming Sessions'],
-  [SITE_URLS.referencing, 'Referencing Guide'],
-  [SITE_URLS.newsletter, 'Newsletters'],
+  [SITE_URLS.sessions, 'Sessions'],
+  [SITE_URLS.referencing, 'Referencing'],
+  [SITE_URLS.newsletter, 'Newsletter'],
   [SITE_URLS.llnd, 'My LLND Portal'],
   [SITE_URLS.contact, 'Contact Us & FAQ'],
 ];

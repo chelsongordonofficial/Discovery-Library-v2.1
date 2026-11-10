@@ -6,6 +6,7 @@ import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
+import { useGravityFormMount } from '../services/gravityFormHandler';
 
 const RECORDING_FILTERS = [
   { id: 'all', label: 'All Recordings' },
@@ -27,6 +28,11 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
   const [confirmedSessions] = useState(new Set());
   const [activePlayback, setActivePlayback] = useState(null);
   const [expandedSessions, setExpandedSessions] = useState(new Set());
+
+  // Attach confirmation message handler on the modal mount
+  useGravityFormMount('gravity-form-session-mount', () => {
+    if (onNotify) onNotify(`Spot reserved for "${rsvpSession?.title || 'session'}"!`);
+  });
 
   // Auto-scroll to section based on navigation target
   useEffect(() => {
