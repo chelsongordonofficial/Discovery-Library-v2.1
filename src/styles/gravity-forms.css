@@ -188,37 +188,101 @@
 /* 4. Field Structure & Grid */
 .gform_wrapper .gform_fields {
   display: grid !important;
-  gap: 16px !important;
+  grid-template-columns: repeat(12, 1fr) !important;
+  gap: 16px 14px !important;
   list-style: none !important;
   padding: 0 !important;
   margin: 0 !important;
+  width: 100% !important;
 }
 
+/* Default all fields to 100% full width */
 .gform_wrapper .gfield {
+  grid-column: 1 / -1 !important;
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
   position: relative !important;
+  box-sizing: border-box !important;
 }
 
-/* Responsive Columns */
-@media (min-width: 641px) {
+/* 4A. Name Layout: First Name 50% width + Last Name 50% width */
+/* Compound Name field (built-in Gravity Forms name structure) */
+.gform_wrapper .ginput_complex.ginput_container_name,
+.gform_wrapper .ginput_complex:has(.name_first),
+.gform_wrapper .ginput_complex:has([class*="name_"]),
+.gform_wrapper .ginput_container_name.ginput_complex {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  width: 100% !important;
+}
+
+.gform_wrapper .ginput_complex .name_first,
+.gform_wrapper .ginput_complex .name_last,
+.gform_wrapper .ginput_container_name span,
+.gform_wrapper .ginput_complex span[class*="name_"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  float: none !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Separate First / Last name half-width fields */
+@media (min-width: 520px) {
   .gform_wrapper .gfield--width-half,
   .gform_wrapper .gf_left_half,
   .gform_wrapper .gf_right_half {
     grid-column: span 6 / span 12 !important;
+    width: 100% !important;
   }
+}
 
-  .gform_wrapper .gfield--width-third,
-  .gform_wrapper .gf_left_third,
-  .gform_wrapper .gf_middle_third,
-  .gform_wrapper .gf_right_third {
-    grid-column: span 4 / span 12 !important;
+@media (max-width: 519px) {
+  .gform_wrapper .ginput_complex.ginput_container_name,
+  .gform_wrapper .ginput_complex:has(.name_first) {
+    grid-template-columns: 1fr !important;
   }
+}
 
-  .gform_wrapper .gfield--width-full {
-    grid-column: 1 / -1 !important;
-  }
+/* 4B. Email: Full Width */
+.gform_wrapper .gfield:has(input[type="email"]),
+.gform_wrapper .gfield--type-email,
+.gform_wrapper .gfield.ginput_container_email,
+.gform_wrapper .gfield:has(.ginput_container_email) {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+/* 4C. Contact Number: Full Width */
+.gform_wrapper .gfield:has(input[type="tel"]),
+.gform_wrapper .gfield--type-phone,
+.gform_wrapper .gfield.ginput_container_phone,
+.gform_wrapper .gfield:has(.ginput_container_phone),
+.gform_wrapper .gfield:has(input[name*="phone" i]),
+.gform_wrapper .gfield:has(input[name*="contact" i]),
+.gform_wrapper .gfield:has(input[id*="phone" i]),
+.gform_wrapper .gfield:has(input[id*="contact" i]) {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+/* 4D. Message Textarea: Full Width */
+.gform_wrapper .gfield:has(textarea),
+.gform_wrapper .gfield--type-textarea,
+.gform_wrapper .gfield.ginput_container_textarea,
+.gform_wrapper .gfield:has(.ginput_container_textarea) {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+.gform_wrapper textarea,
+.gform_wrapper .ginput_container_textarea textarea {
+  width: 100% !important;
+  min-height: 120px !important;
+  resize: vertical !important;
 }
 
 /* 5. Field Labels & Asterisks */
@@ -445,6 +509,27 @@
 .gform_wrapper .gform_footer input[type="submit"]:active,
 .gform_wrapper .gform_footer button[type="submit"]:active {
   transform: translateY(0) !important;
+}
+
+/* Contact Form: Send Message Submit Button Full Width */
+#gravity-form-mount .gform_footer,
+#gravity-form-mount .gform_page_footer,
+.contact-form .gform_footer {
+  width: 100% !important;
+  display: block !important;
+  margin-top: 22px !important;
+}
+
+#gravity-form-mount .gform_button,
+#gravity-form-mount .gform_footer input[type="submit"],
+#gravity-form-mount .gform_footer button[type="submit"],
+.contact-form .gform_button {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
 }
 
 /* Previous Step Button */
