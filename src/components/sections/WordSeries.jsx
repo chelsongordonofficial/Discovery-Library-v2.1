@@ -1,10 +1,33 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Icon from '../ui/Icon';
 import Link from '../ui/Link';
 import Reveal from '../ui/Reveal';
 import SpecularButton from '../ui/SpecularButton';
 import RippleButton from '../ui/RippleButton';
 import { WORD_LESSONS_DATA, SITE_URLS } from '../../data';
+import { useWpData } from '../../context/WpContext';
+
+const WORD_PREFIX_REGEX = /^microsoft\s+word\s*[–—-]\s*(.+)$/i;
+
+const LESSON_ORDER_HINTS = [
+  'opening & quitting',
+  'some commands',
+  'how to create a document',
+  'document formatting',
+  'page formatting',
+  'paragraph formatting',
+  'word formatting styles',
+  'insert and format tables',
+  'insert and modify charts',
+  'hyperlinks',
+  'tracking changes',
+];
+
+function getLessonSortRank(topicTitle) {
+  const lower = (topicTitle || '').toLowerCase();
+  const idx = LESSON_ORDER_HINTS.findIndex((hint) => lower.includes(hint));
+  return idx === -1 ? LESSON_ORDER_HINTS.length : idx;
+}
 
 function formatTime(seconds) {
   if (isNaN(seconds) || seconds === null) return '00:00';
@@ -14,6 +37,7 @@ function formatTime(seconds) {
 }
 
 function WordSeries() {
+  const { wpVideos } = useWpData();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isEnlarged, setIsEnlarged] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,10 +51,37 @@ function WordSeries() {
 
   const playerContainerRef = useRef(null);
   const videoRef = useRef(null);
+  const listRef = useRef(null);
+  const itemRefs = useRef([]);
   const wasPlayingBeforeScrollRef = useRef(false);
+  const pendingAutoPlayRef = useRef(false);
   const controlsTimeoutRef = useRef(null);
 
-  const currentLesson = WORD_LESSONS_DATA[activeIndex] || WORD_LESSONS_DATA[0];
+  const lessons = useMemo(() => {
+    const cptWordLessons = (wpVideos || [])
+      .filter((v) => v && v.title && WORD_PREFIX_REGEX.test(v.title.trim()) && v.video_url)
+      .map((v) => {
+        const match = v.title.trim().match(WORD_PREFIX_REGEX);
+        const topicName = match ? match[1].trim() : v.title.trim();
+        return {
+          id: v.id,
+          title: topicName,
+          fullTitle: v.title.trim(),
+          url: v.video_url,
+          isWp: true,
+        };
+      })
+      .sort((a, b) => getLessonSortRank(a.title) - getLessonSortRank(b.title));
+
+    if (cptWordLessons.length > 0) {
+      return cptWordLessons;
+    }
+
+    return WORD_LESSONS_DATA;
+  }, [wpVideos]);
+
+  const safeActiveIndex = activeIndex < lessons.length ? activeIndex : 0;
+  const currentLesson = lessons[safeActiveIndex] || lessons[0];
 
   // Auto-hide controls during playback
   const triggerControls = useCallback(() => {
@@ -160,25 +211,43 @@ function WordSeries() {
     }
   };
 
+  // Reload & auto-play when switching between distinct CPT video URLs, keeping row visible in scrollable list
+  useEffect(() => {
+    const listEl = listRef.current;
+    const itemEl = itemRefs.current[safeActiveIndex];
+    if (pendingAutoPlayRef.current && listEl && itemEl) {
+      const itemTop = itemEl.offsetTop;
+      const itemBottom = itemTop + itemEl.offsetHeight;
+      const viewTop = listEl.scrollTop;
+      const viewBottom = viewTop + listEl.clientHeight;
+      if (itemTop < viewTop) {
+        listEl.scrollTo({ top: itemTop, behavior: 'smooth' });
+      } else if (itemBottom > viewBottom) {
+        listEl.scrollTo({ top: itemBottom - listEl.clientHeight, behavior: 'smooth' });
+      }
+    }
+
+    const video = videoRef.current;
+    if (!video || !pendingAutoPlayRef.current) return;
+    pendingAutoPlayRef.current = false;
+    video.load();
+    video.currentTime = 0;
+    video.play().catch(() => {});
+    wasPlayingBeforeScrollRef.current = false;
+  }, [currentLesson?.url, safeActiveIndex]);
+
   // Choose a specific lesson
   const selectLesson = (index) => {
     setIsEnlarged(true);
-    if (index === activeIndex) {
+    if (index === safeActiveIndex) {
       togglePlay();
       return;
     }
+    pendingAutoPlayRef.current = true;
     setActiveIndex(index);
     setCurrentTime(0);
-
-    // Wait for video src to switch and start playback
-    setTimeout(() => {
-      const video = videoRef.current;
-      if (video) {
-        video.currentTime = 0;
-        video.play().catch(() => {});
-        wasPlayingBeforeScrollRef.current = false;
-      }
-    }, 50);
+    setDuration(0);
+    setBufferedPercent(0);
   };
 
   // Seek on track click
@@ -300,8 +369,8 @@ function WordSeries() {
               onEnded={() => {
                 setIsPlaying(false);
                 // Autoplay next lesson if available
-                if (activeIndex < WORD_LESSONS_DATA.length - 1) {
-                  selectLesson(activeIndex + 1);
+                if (safeActiveIndex < lessons.length - 1) {
+                  selectLesson(safeActiveIndex + 1);
                 }
               }}
               onClick={togglePlay}
@@ -323,7 +392,7 @@ function WordSeries() {
                   <Icon name="playSimple" />
                 </button>
                 <div className="v-poster-info">
-                  <span className="v-tag">Lesson {currentLesson.id} of {WORD_LESSONS_DATA.length}</span>
+                  <span className="v-tag">Lesson {safeActiveIndex + 1} of {lessons.length}</span>
                   <span className="cap">{currentLesson.title}</span>
                 </div>
               </div>
@@ -479,13 +548,16 @@ function WordSeries() {
             </div>
           </div>
 
-          {/* Clickable Lessons List in <ol class="mini"> */}
-          <ol className="mini" role="list">
-            {WORD_LESSONS_DATA.map((lesson, idx) => {
-              const isCurrent = idx === activeIndex;
+          {/* Clickable Scrollable Lessons List in <ol class="mini"> */}
+          <ol ref={listRef} className="mini" role="list">
+            {lessons.map((lesson, idx) => {
+              const isCurrent = idx === safeActiveIndex;
               return (
                 <li
-                  key={lesson.id}
+                  key={lesson.id || lesson.title}
+                  ref={(el) => {
+                    itemRefs.current[idx] = el;
+                  }}
                   className={`mini-item${isCurrent ? ' active' : ''}${isCurrent && isPlaying ? ' playing' : ''}`}
                   onClick={() => selectLesson(idx)}
                   onKeyDown={(e) => {
