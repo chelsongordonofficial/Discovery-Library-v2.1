@@ -657,20 +657,6 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                 data-session-title={rsvpSession.title}
                 data-session-date={`${rsvpSession.wd} · ${rsvpSession.d} ${rsvpSession.mon} · ${rsvpSession.time}`}
               >
-                <div className="gform-mount-placeholder">
-                  <div className="gf-placeholder-icon">
-                    <Icon name="calendar" />
-                  </div>
-                  <div className="gf-placeholder-title">
-                    Gravity Form Reservation Mount
-                  </div>
-                  <p className="gf-placeholder-text">
-                    Target container configured for WordPress Gravity Forms. All fields, labels, inputs, and submission buttons inherit the Discovery Library theme.
-                  </p>
-                  <code className="gf-placeholder-code">
-                    #gravity-form-session-mount
-                  </code>
-                </div>
               </div>
             </div>
           </div>

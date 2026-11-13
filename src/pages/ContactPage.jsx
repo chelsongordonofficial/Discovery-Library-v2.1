@@ -93,21 +93,6 @@ export default function ContactPage({ onNotify }) {
               className="gravity-form-mount-target"
               data-gform-mount="true"
             >
-              {/* Ready placeholder target — automatically concealed when Gravity Forms is rendered by WordPress */}
-              <div className="gform-mount-placeholder">
-                <div className="gf-placeholder-icon">
-                  <Icon name="mail" />
-                </div>
-                <div className="gf-placeholder-title">
-                  Gravity Form Mount Container
-                </div>
-                <p className="gf-placeholder-text">
-                  Target container configured for WordPress Gravity Forms. All fields, labels, inputs, validations, and submission buttons inherit the Discovery Library theme.
-                </p>
-                <code className="gf-placeholder-code">
-                  #gravity-form-mount
-                </code>
-              </div>
             </div>
           </Reveal>
 
