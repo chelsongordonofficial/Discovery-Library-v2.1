@@ -242,7 +242,7 @@ export default function ReferencingPage({ onCopy, onNotify }) {
             <div className="ref-parent-hierarchy" role="tablist" aria-label="Referencing Modules">
               <div className="ref-hierarchy-header">
                 <span className="ref-hierarchy-label">
-                  <b>Core Modules</b> · Select an APA 7th Category (1–8)
+                  <b>Core Modules</b> · Select a Category
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--sub)', fontFamily: 'var(--f-mono)' }}>
                   Module {currentSection.num} of 8
@@ -284,9 +284,9 @@ export default function ReferencingPage({ onCopy, onNotify }) {
             <div className="ref-child-hierarchy" role="region" aria-label="Module Subtopics">
               <div className="ref-child-header">
                 <div className="ref-child-breadcrumb">
-                  <span className="parent-crumb">Module {currentSection.num}: {currentSection.title}</span>
+                  <span className="parent-crumb">Module {currentSection.num} : {currentSection.title}</span>
                   <span className="sep">›</span>
-                  <span className="child-crumb">Topics ({currentSection.tabs[0].tabNum} – {currentSection.tabs[currentSection.tabs.length - 1].tabNum})</span>
+                  <span className="child-crumb">Topics from {currentSection.tabs[0].tabNum} to {currentSection.tabs[currentSection.tabs.length - 1].tabNum}</span>
                 </div>
                 <span className="ref-child-count">
                   {currentSection.tabs.length} {currentSection.tabs.length === 1 ? 'Topic' : 'Topics'}

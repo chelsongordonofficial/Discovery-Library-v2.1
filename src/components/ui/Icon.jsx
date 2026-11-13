@@ -88,6 +88,16 @@ function InfoIcon(props) {
   );
 }
 
+function DownloadIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
 const ICONS = {
   play: PlayIcon,
   playSimple: PlayIconSimple,
@@ -115,18 +125,20 @@ const ICONS = {
   chevronUp: ChevronUpIcon,
   chevronRight: ChevronRightIcon,
   info: InfoIcon,
+  download: DownloadIcon,
 };
 
-function Icon({ name, className = '' }) {
+function Icon({ name, className = '', ...rest }) {
   const SvgIcon = ICONS[name];
 
   if (!SvgIcon) return null;
 
   return (
     <SvgIcon
-      className={`ic ${className}`}
+      className={`ic ${className}`.trim()}
       aria-hidden="true"
       focusable="false"
+      {...rest}
     />
   );
 }

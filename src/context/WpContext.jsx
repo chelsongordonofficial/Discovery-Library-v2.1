@@ -34,6 +34,7 @@ const WpContext = createContext({
   searchVideos: SEARCH_VIDEOS,
   usefulLinks: [],
   newsletters: [],
+  isNewslettersLive: false,
   refetch: () => {},
 });
 
@@ -43,6 +44,7 @@ export function WpProvider({ children }) {
 
   const [loading, setLoading] = useState(!cached);
   const [isLiveConnected, setIsLiveConnected] = useState(!!cached);
+  const [isNewslettersLive, setIsNewslettersLive] = useState(Array.isArray(cached?.newsletters));
   const [wpSessions, setWpSessions] = useState(cached?.sessions || []);
   const [wpVideos, setWpVideos] = useState(cached?.videos || []);
   const [usefulLinks, setUsefulLinks] = useState(cached?.links || []);
@@ -73,25 +75,26 @@ export function WpProvider({ children }) {
       }
       if (liveNews !== null) {
         setNewsletters(liveNews);
+        setIsNewslettersLive(true);
       }
 
       const connected =
         (liveSessions !== null && liveSessions.length > 0) ||
         (liveVideos !== null && liveVideos.length > 0) ||
         (liveLinks !== null && liveLinks.length > 0) ||
-        (liveNews !== null && liveNews.length > 0);
+        liveNews !== null;
 
       if (connected) {
         setIsLiveConnected(true);
       }
 
       // Save to localStorage cache for instant 0ms subsequent renders
-      if (liveSessions !== null) {
+      if (liveSessions !== null || liveNews !== null || liveVideos !== null || liveLinks !== null) {
         setStoredWpCache({
-          sessions: liveSessions,
+          sessions: liveSessions || [],
           videos: liveVideos || [],
           links: liveLinks || [],
-          newsletters: liveNews || [],
+          newsletters: liveNews !== null ? liveNews : null,
         });
       }
     } catch (err) {
@@ -151,12 +154,14 @@ export function WpProvider({ children }) {
       searchVideos,
       usefulLinks,
       newsletters,
+      isNewslettersLive,
       refetch: loadData,
     }),
     [
       loading,
       cached,
       isLiveConnected,
+      isNewslettersLive,
       hasLiveUpcomingSessions,
       wpSessions,
       wpUpcomingSessions,

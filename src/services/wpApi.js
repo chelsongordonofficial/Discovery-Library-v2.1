@@ -16,7 +16,7 @@ import {
 } from '../data/index.js';
 
 export const WP_DOMAIN = 'https://discoverylibrary.com.au';
-const CACHE_KEY = 'discovery_library_wp_cache_v6';
+const CACHE_KEY = 'discovery_library_wp_cache_v7';
 
 export const WP_ENDPOINTS = {
   trainingVideos: `${WP_DOMAIN}/wp-json/wp/v2/training_video`,
@@ -34,6 +34,7 @@ export function getStoredWpCache() {
     // Clear old legacy cache versions if present
     localStorage.removeItem('discovery_library_wp_cache_v1');
     localStorage.removeItem('discovery_library_wp_cache_v2');
+    localStorage.removeItem('discovery_library_wp_cache_v6');
 
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
@@ -300,19 +301,127 @@ export function normalizeUsefulLink(item) {
   };
 }
 
+const FULL_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+/**
+ * Extracts normalized { month, year, rawDate, sortTime } from WordPress CPT meta.newsletter_date or post date
+ */
+export function parseNewsletterDate(rawDateStr, fallbackIsoDate = '') {
+  const candidates = [rawDateStr, fallbackIsoDate].filter((v) => typeof v === 'string' && v.trim());
+
+  for (const raw of candidates) {
+    const str = raw.trim();
+
+    // 1. YYYY-MM-DD or YYYY/MM/DD or YYYY-MM (with optional time)
+    const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?/);
+    if (isoMatch) {
+      const yearNum = parseInt(isoMatch[1], 10);
+      const monthIdx = Math.max(0, Math.min(11, parseInt(isoMatch[2], 10) - 1));
+      const dayNum = isoMatch[3] ? parseInt(isoMatch[3], 10) : 1;
+      return {
+        month: FULL_MONTHS[monthIdx],
+        year: String(yearNum),
+        rawDate: str.split('T')[0],
+        sortTime: new Date(yearNum, monthIdx, dayNum).getTime(),
+      };
+    }
+
+    // 2. DD/MM/YYYY or DD-MM-YYYY
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (dmyMatch) {
+      const dayNum = parseInt(dmyMatch[1], 10);
+      const monthIdx = Math.max(0, Math.min(11, parseInt(dmyMatch[2], 10) - 1));
+      const yearNum = parseInt(dmyMatch[3], 10);
+      return {
+        month: FULL_MONTHS[monthIdx],
+        year: String(yearNum),
+        rawDate: str,
+        sortTime: new Date(yearNum, monthIdx, dayNum).getTime(),
+      };
+    }
+
+    // 3. Text month & year (e.g. "October 2026", "October 15, 2026", "Oct 2025")
+    const lower = str.toLowerCase();
+    const yearMatch = str.match(/\b(20\d{2})\b/);
+    const monthIdx = SHORT_MONTHS.findIndex((m) => lower.includes(m));
+    if (monthIdx !== -1 || yearMatch) {
+      const resolvedMonthIdx = monthIdx !== -1 ? monthIdx : 0;
+      const yearNum = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+      const dayMatch = str.match(/\b(\d{1,2})\b/);
+      const dayNum = dayMatch && parseInt(dayMatch[1], 10) <= 31 ? parseInt(dayMatch[1], 10) : 1;
+      return {
+        month: monthIdx !== -1 ? FULL_MONTHS[resolvedMonthIdx] : '',
+        year: yearMatch ? yearMatch[1] : String(yearNum),
+        rawDate: str,
+        sortTime: new Date(yearNum, resolvedMonthIdx, dayNum).getTime(),
+      };
+    }
+
+    // 4. Native Date fallback
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      return {
+        month: FULL_MONTHS[parsed.getMonth()],
+        year: String(parsed.getFullYear()),
+        rawDate: str.split('T')[0],
+        sortTime: parsed.getTime(),
+      };
+    }
+  }
+
+  return {
+    month: '',
+    year: String(new Date().getFullYear()),
+    rawDate: '',
+    sortTime: 0,
+  };
+}
+
 /**
  * Normalizes a newsletter CPT item from WordPress
  */
 export function normalizeNewsletter(item) {
   if (!item) return null;
-  const title = decodeHtml(item.title?.rendered || 'Discovery Library Newsletter');
   const meta = item.meta || {};
+  if (meta.is_visible === false) return null;
+
+  const title = decodeHtml(item.title?.rendered || 'Discovery Library Newsletter');
+  const { month, year, rawDate, sortTime } = parseNewsletterDate(
+    meta.newsletter_date || item.newsletter_date,
+    item.date || item.date_gmt
+  );
+
+  const fileUrl = meta.file_url || meta.pdf_url || item.acf?.file_url || item.acf?.pdf_url || '';
+  const previewUrl = fileUrl || item.link || '';
 
   return {
     id: item.id,
     title,
-    date: item.date ? item.date.split('T')[0] : '',
-    pdf_url: meta.pdf_url || meta.file_url || item.link || SITE_URLS.newsletter,
+    month,
+    year,
+    date: rawDate,
+    sortTime,
+    file_url: fileUrl,
+    pdf_url: previewUrl,
+    show_title: meta.show_title !== false,
+    show_newsletter_date: meta.show_newsletter_date !== false,
+    show_file_url: meta.show_file_url !== false,
+    link: item.link || '',
     isWp: true,
   };
 }
@@ -389,19 +498,23 @@ export async function fetchUsefulLinks() {
 
 /**
  * Fetch Newsletters from WordPress
+ * Returns array (possibly empty) when connected, or null when unreachable/errored.
  */
 export async function fetchNewsletters() {
   try {
-    const res = await fetchWithTimeout(`${WP_ENDPOINTS.newsletters}?per_page=50&_embed=true`);
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.newsletters}?per_page=100&_embed=true`);
     if (!res.ok) throw new Error(`WP newsletter status ${res.status}`);
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map(normalizeNewsletter).filter(Boolean);
+    if (Array.isArray(data)) {
+      return data
+        .map(normalizeNewsletter)
+        .filter(Boolean)
+        .sort((a, b) => (b.sortTime || 0) - (a.sortTime || 0));
     }
     return [];
   } catch (err) {
-    console.warn('[Discovery Library] Failed to fetch newsletter from WP, using fallback:', err.message);
-    return [];
+    console.warn('[Discovery Library] Failed to fetch newsletter from WP:', err.message);
+    return null;
   }
 }
 

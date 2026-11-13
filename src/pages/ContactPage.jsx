@@ -60,22 +60,23 @@ export default function ContactPage({ onNotify }) {
         {/* Section Header with Disciplined Typography */}
         <Reveal className="sh">
           <h2>
-            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Contact Us & Campus</span>{' '}
+            
             <GradientText
               colors={['#FFC83A', '#FF9E2C', '#FFE17D', '#FF9E2C', '#FFC83A']}
               animationSpeed={5}
               style={{ fontFamily: 'var(--f-head)', fontWeight: 800 }}
             >
-              Hubs
+              Contact
             </GradientText>
+            <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}> Us</span>{' '}
           </h2>
           <p>
-            Connect with our library staff in person at any campus location or submit an inquiry online.
+            Connect with our library staff by submitting an inquiry online.
           </p>
         </Reveal>
 
-        {/* 2-Column Contact Form & Campus Hubs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, marginBottom: 48 }}>
+        {/* 2-Column Contact Form & FAQs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
           {/* Gravity Form Mount Section */}
           <Reveal className="glass panel gform-mount-container" style={{ padding: '28px 30px', textAlign: 'left' }}>
             <div className="gform-mount-header" style={{ marginBottom: 22 }}>
@@ -96,67 +97,86 @@ export default function ContactPage({ onNotify }) {
             </div>
           </Reveal>
 
-          {/* Campus Locations */}
-          <div style={{ display: 'grid', gap: 14 }}>
-            {CAMPUS_LOCATIONS.map((loc, i) => (
-              <Reveal key={loc.city} delay={i * 0.05}>
-                <div className="glass panel" style={{ padding: '18px 22px', textAlign: 'left' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <h4 style={{ fontSize: 16.5, margin: 0, color: 'var(--cream)', fontWeight: 600 }}>
-                      {loc.city} Campus Library
-                    </h4>
-                    <span style={{ fontSize: 12, color: 'var(--em)' }}>{loc.hours}</span>
+          {/* FAQs Section */}
+          <div style={{ display: 'grid', gap: 12, textAlign: 'left' }}>
+            <Reveal style={{ marginBottom: 6 }}>
+              <h3 style={{ fontSize: 22, margin: '0 0 6px', color: 'var(--cream)', fontWeight: 700 }}>
+                Frequently Asked <span className="hl-word hl-em">Questions</span>
+              </h3>
+              <p style={{ color: 'var(--sub)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+                Quick answers to common library and assessment questions.
+              </p>
+            </Reveal>
+
+            {FAQS.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <Reveal key={faq.q} delay={idx * 0.04}>
+                  <div
+                    className="glass panel"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isOpen}
+                    style={{
+                      padding: '18px 22px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      borderColor: isOpen ? 'rgba(255, 200, 58, 0.35)' : undefined,
+                      transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+                    }}
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setOpenFaq(isOpen ? null : idx);
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <h4 style={{ fontSize: 15.5, margin: 0, color: 'var(--cream)', fontWeight: 600 }}>
+                        {faq.q}
+                      </h4>
+                      <span
+                        style={{
+                          color: 'var(--gold)',
+                          fontSize: 18,
+                          flexShrink: 0,
+                          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.36s cubic-bezier(0.22, 1, 0.36, 1)',
+                        }}
+                      >
+                        ▾
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateRows: isOpen ? '1fr' : '0fr',
+                        opacity: isOpen ? 1 : 0,
+                        transition: 'grid-template-rows 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease',
+                      }}
+                    >
+                      <div style={{ overflow: 'hidden', minHeight: 0 }}>
+                        <p
+                          style={{
+                            marginTop: 12,
+                            marginBottom: 0,
+                            fontSize: 14,
+                            color: 'var(--sub)',
+                            lineHeight: 1.55,
+                            transform: isOpen ? 'translateY(0)' : 'translateY(-6px)',
+                            transition: 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)',
+                          }}
+                        >
+                          {faq.a}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <p style={{ fontSize: 13.5, color: 'var(--sub)', margin: '0 0 6px', lineHeight: 1.4 }}>
-                    {loc.address}
-                  </p>
-                  <a href={`mailto:${loc.email}`} style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none' }}>
-                    {loc.email}
-                  </a>
-                </div>
-              </Reveal>
-            ))}
+                </Reveal>
+              );
+            })}
           </div>
-        </div>
-
-        {/* FAQs Section */}
-        <Reveal className="sh" style={{ marginBottom: 20 }}>
-          <h2>
-            Frequently Asked <span className="hl-word hl-em">Questions</span>
-          </h2>
-        </Reveal>
-
-        <div style={{ maxWidth: 840, margin: '0 auto', display: 'grid', gap: 12 }}>
-          {FAQS.map((faq, idx) => {
-            const isOpen = openFaq === idx;
-            return (
-              <Reveal key={faq.q} delay={idx * 0.04}>
-                <div
-                  className="glass panel"
-                  style={{
-                    padding: '18px 24px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ fontSize: 16, margin: 0, color: 'var(--cream)', fontWeight: 600 }}>
-                      {faq.q}
-                    </h4>
-                    <span style={{ color: 'var(--gold)', fontSize: 18, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                      ▾
-                    </span>
-                  </div>
-                  {isOpen && (
-                    <p style={{ marginTop: 12, fontSize: 14, color: 'var(--sub)', lineHeight: 1.55 }}>
-                      {faq.a}
-                    </p>
-                  )}
-                </div>
-              </Reveal>
-            );
-          })}
         </div>
       </div>
     </div>

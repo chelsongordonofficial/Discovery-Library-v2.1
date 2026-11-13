@@ -84,69 +84,6 @@
   box-sizing: border-box !important;
 }
 
-/* Mount target placeholder indicator (shown when waiting for WP form injection) */
-.gform-mount-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 40px 24px;
-  border: 1.5px dashed var(--line, rgba(120, 240, 190, 0.2));
-  border-radius: 16px;
-  background: rgba(2, 14, 9, 0.3);
-  transition: all 0.3s ease;
-}
-
-.gform-mount-placeholder:hover {
-  border-color: var(--gold, #FFC83A);
-  background: rgba(2, 14, 9, 0.45);
-}
-
-.gf-placeholder-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(255, 200, 58, 0.12);
-  border: 1px solid var(--line-gold, rgba(255, 200, 58, 0.45));
-  color: var(--gold, #FFC83A);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-}
-
-.gf-placeholder-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.gf-placeholder-title {
-  font-family: var(--f-head, 'Bricolage Grotesque', sans-serif);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--cream, #FFF8E1);
-  margin-bottom: 8px;
-}
-
-.gf-placeholder-text {
-  font-size: 13.5px;
-  color: var(--sub, #A9C7B8);
-  max-width: 380px;
-  line-height: 1.5;
-  margin-bottom: 14px;
-}
-
-.gf-placeholder-code {
-  font-family: var(--f-mono, monospace);
-  font-size: 11.5px;
-  color: var(--mint, #8CF7C5);
-  background: rgba(25, 214, 138, 0.08);
-  border: 1px solid rgba(25, 214, 138, 0.24);
-  border-radius: 6px;
-  padding: 4px 10px;
-}
-
 /* Auto-hide the placeholder when any Gravity Form is mounted inside mount containers */
 #gravity-form-mount:has(.gform_wrapper) .gform-mount-placeholder,
 #gravity-form-mount:has(form) .gform-mount-placeholder,

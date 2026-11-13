@@ -6,65 +6,141 @@ import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
+import { parseNewsletterDate } from '../services/wpApi';
 
 const FALLBACK_NEWSLETTERS = [
   {
-    issue: 'Issue 42 — October 2026',
+    id: 'fb-2026-10',
+    month: 'October',
+    year: '2026',
     title: 'Navigating New ASQA Evidence Standards & AI in Capstone Projects',
-    date: 'October 15, 2026',
-    summary: 'A look into the revised TAE and vocational assessment guidelines, how trainers can verify evidence authenticity, and new generative AI referencing requirements under APA 7th.',
-    readTime: '6 min read',
-    tags: ['ASQA Standards', 'AI Policies', 'Library Update'],
+    pdf_url: '',
   },
   {
-    issue: 'Issue 41 — September 2026',
+    id: 'fb-2026-09',
+    month: 'September',
+    year: '2026',
     title: 'Digital Literacies in 2026: Beyond Basic Word Processing',
-    date: 'September 12, 2026',
-    summary: 'Introducing the 11-lesson Microsoft Word Masterclass on Discovery Library. Plus: Top academic databases accessible to every vocational learner without paid paywalls.',
-    readTime: '5 min read',
-    tags: ['MS Word Series', 'Student Tools', 'VOCEDplus'],
+    pdf_url: '',
   },
   {
-    issue: 'Issue 40 — August 2026',
+    id: 'fb-2026-08',
+    month: 'August',
+    year: '2026',
     title: 'Academic Momentum: Staying on Track During Rolling Intakes',
-    date: 'August 18, 2026',
-    summary: 'Proven strategies for students balancing work commitments with vocational certificates. Discover how one-on-one LLND support sessions boost course completion rates.',
-    readTime: '4 min read',
-    tags: ['LLND Support', 'Study Strategies', 'Campus Life'],
+    pdf_url: '',
+  },
+  {
+    id: 'fb-2025-11',
+    month: 'November',
+    year: '2025',
+    title: 'End-of-Year Referencing Checklist & APA 7th Quick Reminders',
+    pdf_url: '',
+  },
+  {
+    id: 'fb-2025-07',
+    month: 'July',
+    year: '2025',
+    title: 'Open-Access Research Databases for Vocational Learners',
+    pdf_url: '',
   },
 ];
 
+const DEFAULT_YEARS = ['2026', '2025'];
+
+function buildDownloadFilename(item) {
+  const base = [item.month, item.year, item.title]
+    .filter(Boolean)
+    .join(' - ')
+    .replace(/[^a-z0-9\s\-_]/gi, '')
+    .trim()
+    .replace(/\s+/g, '-');
+  return `${base || 'Discovery-Library-Newsletter'}.pdf`;
+}
+
 export default function NewsletterPage({ onNotify }) {
-  const { newsletters } = useWpData();
-  const [subEmail, setSubEmail] = useState('');
+  const { newsletters, isNewslettersLive, isInitialLoading } = useWpData();
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [downloadingId, setDownloadingId] = useState(null);
 
-  const displayNewsletters = useMemo(() => {
+  const processedNewsletters = useMemo(() => {
     if (newsletters && newsletters.length > 0) {
-      return newsletters.map((n, idx) => ({
-        issue: `Issue WP-${n.id || idx + 1}`,
-        title: n.title,
-        date: n.date || 'Recent Issue',
-        summary: 'Official newsletter publication from Discovery Library academic support team.',
-        readTime: '5 min read',
-        tags: ['Library Dispatch'],
-        pdf_url: n.pdf_url,
-        isWp: true,
-      }));
+      return newsletters.map((n, idx) => {
+        const parsed = (!n.month || !n.year) ? parseNewsletterDate(n.date) : null;
+        return {
+          id: n.id || `wp-${idx}`,
+          month: n.show_newsletter_date === false ? '' : (n.month || parsed?.month || ''),
+          year: String(n.year || parsed?.year || '2026'),
+          title: n.title || 'Discovery Library Newsletter',
+          file_url: n.file_url || n.pdf_url || '',
+          pdf_url: n.pdf_url || n.file_url || n.link || '',
+          show_file_url: n.show_file_url !== false,
+          sortTime: n.sortTime || parsed?.sortTime || 0,
+        };
+      });
     }
-    return FALLBACK_NEWSLETTERS;
-  }, [newsletters]);
 
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (!subEmail.trim()) return;
-    if (onNotify) onNotify(`Thank you! ${subEmail} has been subscribed to Discovery Herald.`);
-    setSubEmail('');
+    if (isNewslettersLive) {
+      return [];
+    }
+
+    return FALLBACK_NEWSLETTERS;
+  }, [newsletters, isNewslettersLive]);
+
+  const yearPills = useMemo(() => {
+    const wpYears = processedNewsletters.map((n) => String(n.year)).filter(Boolean);
+    return [...new Set([...DEFAULT_YEARS, ...wpYears])].sort((a, b) => Number(b) - Number(a));
+  }, [processedNewsletters]);
+
+  const filteredNewsletters = useMemo(() => {
+    return processedNewsletters
+      .filter((n) => String(n.year) === String(selectedYear))
+      .sort((a, b) => (b.sortTime || 0) - (a.sortTime || 0));
+  }, [processedNewsletters, selectedYear]);
+
+  const handleDownload = async (item) => {
+    const downloadUrl = item.file_url || item.pdf_url;
+    if (!downloadUrl) {
+      if (onNotify) onNotify('Download file is not available for this newsletter yet.');
+      return;
+    }
+
+    const fileName = buildDownloadFilename(item);
+    setDownloadingId(item.id);
+
+    try {
+      const response = await fetch(downloadUrl, { mode: 'cors' });
+      if (!response.ok) throw new Error('Direct blob download unavailable');
+      const rawBlob = await response.blob();
+      const downloadBlob = new Blob([rawBlob], { type: 'application/octet-stream' });
+      const blobUrl = URL.createObjectURL(downloadBlob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+      if (onNotify) onNotify(`Downloading "${item.title}"`);
+    } catch {
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      if (onNotify) onNotify(`Downloading "${item.title}"`);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
     <div className="page page-newsletter" style={{ paddingTop: 36, paddingBottom: 100 }}>
       <div className="wrap">
-        {/* Clean Back Button - No random pill */}
+        {/* Back Button */}
         <div style={{ textAlign: 'left', marginBottom: 20 }}>
           <RippleButton
             as={Link}
@@ -77,8 +153,8 @@ export default function NewsletterPage({ onNotify }) {
           </RippleButton>
         </div>
 
-        {/* Section Header with Disciplined Typography */}
-        <Reveal className="sh" style={{marginLeft: 0}}>
+        {/* Section Header */}
+        <Reveal className="sh" style={{ marginLeft: 0, marginBottom: 24 }}>
           <h2>
             <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Our</span>{' '}
             <GradientText
@@ -94,72 +170,133 @@ export default function NewsletterPage({ onNotify }) {
           </p>
         </Reveal>
 
-        {/* Newsletter list */}
-        <div style={{ display: 'grid', gap: 16 }}>
-          {displayNewsletters.map((n, i) => (
-            <Reveal key={n.issue || i} delay={i * 0.06}>
-              <div
-                className="glass panel"
-                style={{
-                  padding: '22px 26px',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  gap: 20,
-                  alignItems: 'center',
-                  textAlign: 'left',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                    <span className="typetag">{n.issue}</span>
-                    <span style={{ fontSize: 13, color: 'var(--sub)' }}>{n.date} · {n.readTime}</span>
-                  </div>
+        {/* Filter by Year Pills */}
+        <Reveal style={{ marginBottom: 28 }}>
+          <div
+            className="filter-group"
+            role="tablist"
+            aria-label="Filter newsletters by year"
+            style={{ justifyContent: 'flex-start' }}
+          >
+            {yearPills.map((year) => {
+              const isActive = String(selectedYear) === String(year);
+              return (
+                <button
+                  key={year}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`filter-tab${isActive ? ' active' : ''}`}
+                  onClick={() => setSelectedYear(year)}
+                >
+                  {year}
+                </button>
+              );
+            })}
+          </div>
+        </Reveal>
 
-                  <h3 style={{ fontSize: 18, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
-                    {n.title}
-                  </h3>
+        {/* Newsletter Rows */}
+        {isInitialLoading && (!newsletters || newsletters.length === 0) ? (
+          <div className="glass panel" style={{ padding: 36, textAlign: 'center', color: 'var(--sub)' }}>
+            Loading newsletters...
+          </div>
+        ) : filteredNewsletters.length === 0 ? (
+          <Reveal className="glass panel" style={{ padding: 36, textAlign: 'center', color: 'var(--sub)' }}>
+            No newsletters available for {selectedYear} yet.
+          </Reveal>
+        ) : (
+          <div style={{ display: 'grid', gap: 14 }}>
+            {filteredNewsletters.map((n, i) => {
+              const previewUrl = n.pdf_url || n.file_url;
+              const isDownloading = downloadingId === n.id;
 
-                  <p style={{ color: 'var(--sub)', fontSize: 14, lineHeight: 1.55, marginBottom: 12, maxWidth: 840 }}>
-                    {n.summary}
-                  </p>
+              return (
+                <Reveal key={n.id || i} delay={i * 0.05}>
+                  <div
+                    className="glass panel"
+                    style={{
+                      padding: '22px 26px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 20,
+                      flexWrap: 'wrap',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+                      {n.month && (
+                        <div
+                          style={{
+                            fontFamily: 'var(--f-mono)',
+                            fontSize: 15,
+                            fontWeight: 700,
+                            letterSpacing: '0.07em',
+                            textTransform: 'uppercase',
+                            color: 'var(--em)',
+                            marginBottom: 8,
+                          }}
+                        >
+                          {n.month}
+                        </div>
+                      )}
 
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {n.tags.map((t) => (
-                      <span
-                        key={t}
+                      <h3
                         style={{
-                          fontSize: 12,
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          border: '1px solid var(--line)',
-                          padding: '2px 9px',
-                          borderRadius: 100,
-                          color: 'var(--sub)',
+                          fontSize: 18,
+                          margin: 0,
+                          color: 'var(--cream)',
+                          fontWeight: 600,
+                          lineHeight: 1.4,
                         }}
                       >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                        {n.title}
+                      </h3>
+                    </div>
 
-                <div>
-                  <RippleButton
-                    as="button"
-                    type="button"
-                    onClick={() => {
-                      if (n.pdf_url) window.open(n.pdf_url, '_blank', 'noopener,noreferrer');
-                      else if (onNotify) onNotify(`Opening ${n.issue}`);
-                    }}
-                    className="btn btn-ghost btn-sm"
-                    rippleColor="var(--em)"
-                  >
-                    Read Issue <Icon name="arrow" style={{ width: 14, height: 14 }} />
-                  </RippleButton>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
+                      <RippleButton
+                        as="button"
+                        type="button"
+                        onClick={() => handleDownload(n)}
+                        disabled={isDownloading}
+                        className="btn btn-ghost"
+                        rippleColor="var(--em)"
+                        style={{ padding: '13px 20px' }}
+                      >
+                        <Icon name="download" style={{ width: 18, height: 18 }} />
+                        {isDownloading ? 'Downloading...' : 'Download'}
+                      </RippleButton>
+
+                      <SpecularButton
+                        as="a"
+                        href={previewUrl || '#'}
+                        target={previewUrl ? '_blank' : undefined}
+                        rel={previewUrl ? 'noopener noreferrer' : undefined}
+                        onClick={(e) => {
+                          if (!previewUrl) {
+                            e.preventDefault();
+                            if (onNotify) onNotify('Preview file is not available for this newsletter yet.');
+                          }
+                        }}
+                        className="btn btn-gold"
+                        radius={12}
+                        lineColor="#ffffff"
+                        baseColor="#ffd860"
+                        intensity={1.2}
+                        style={{ padding: '14px 22px' }}
+                      >
+                        Preview
+                        <Icon name="arrow" style={{ width: 16, height: 16 }} />
+                      </SpecularButton>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
