@@ -407,11 +407,11 @@ function VideoCardRow({ video: v, index, onPlay }) {
               as="button"
               type="button"
               onClick={() => onPlay(v)}
-              className="btn btn-ghost btn-sm"
-              radius={10}
-              style={{ minWidth: 150, justifyContent: 'center' }}
+              className="btn btn-ghost"
+              radius={12}
+              style={{ padding: '12px 22px', justifyContent: 'center' }}
             >
-              Watch Video <Icon name="arrow" style={{ width: 14, height: 14 }} />
+              Watch Video <Icon name="arrow" style={{ width: 16, height: 16 }} />
             </SpecularButton>
 
             {v.quiz_link && (
@@ -423,6 +423,7 @@ function VideoCardRow({ video: v, index, onPlay }) {
                 className="btn btn-ghost btn-sm"
                 rippleColor="var(--gold)"
                 title="Test your comprehension"
+                style={{ padding: '12px 22px' }}
               >
                 Take Quiz
               </RippleButton>
