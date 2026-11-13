@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
@@ -8,13 +10,6 @@ import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
 import { useGravityFormMount } from '../services/gravityFormHandler';
 
-const RECORDING_FILTERS = [
-  { id: 'all', label: 'All Recordings' },
-  { id: 'live', label: 'Live Clinics & Briefings' },
-  { id: 'workshop', label: 'Workshops' },
-  { id: 'webinar', label: 'Webinars' },
-];
-
 export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
   const {
     upcomingSessions,
@@ -23,11 +18,13 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
     isInitialLoading,
   } = useWpData();
 
-  const [recFilter, setRecFilter] = useState('all');
+  const [recSearch, setRecSearch] = useState('');
   const [rsvpSession, setRsvpSession] = useState(null);
   const [confirmedSessions] = useState(new Set());
   const [activePlayback, setActivePlayback] = useState(null);
   const [expandedSessions, setExpandedSessions] = useState(new Set());
+  const playbackTriggerRef = useRef(null);
+  const playbackModalRef = useRef(null);
 
   // Attach confirmation message handler on the modal mount
   useGravityFormMount('gravity-form-session-mount', () => {
@@ -46,11 +43,16 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
   }, [scrollTo]);
 
   const filteredRecordings = useMemo(() => {
+    const q = recSearch.trim().toLowerCase();
+    if (!q) return previousSessions;
     return previousSessions.filter((s) => {
-      if (recFilter === 'all') return true;
-      return s.cat === recFilter;
+      const hay = [s.title, s.desc, s.d, s.mon, s.year, s.wd, s.time]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
     });
-  }, [previousSessions, recFilter]);
+  }, [previousSessions, recSearch]);
 
   const handleBook = (s) => {
     setRsvpSession(s);
@@ -184,8 +186,65 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
     }
   };
 
-  const handlePlayRecording = (s) => {
-    setActivePlayback(s);
+  // Lock scroll (without scrollbar layout jump), trap Escape, and restore focus cleanly when playback modal toggles
+  useEffect(() => {
+    if (!activePlayback) return undefined;
+
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    const focusTimer = requestAnimationFrame(() => {
+      playbackModalRef.current?.focus({ preventScroll: true });
+    });
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setActivePlayback(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      cancelAnimationFrame(focusTimer);
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+      playbackTriggerRef.current?.focus?.({ preventScroll: true });
+    };
+  }, [activePlayback]);
+
+  const handlePlayRecording = (s, e) => {
+    if (!s?.video_url) {
+      if (onNotify) onNotify('Recording video is not available for this session yet.');
+      return;
+    }
+
+    playbackTriggerRef.current = e?.currentTarget || document.activeElement;
+    const cardEl = e?.currentTarget?.closest?.('.recording-card') || e?.currentTarget;
+    const rect = cardEl?.getBoundingClientRect?.();
+
+    let origin = { x: 0, y: 24, scale: 0.9 };
+    if (rect && typeof window !== 'undefined') {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const targetWidth = Math.min(780, vw * 0.94);
+      origin = {
+        x: rect.left + rect.width / 2 - vw / 2,
+        y: rect.top + rect.height / 2 - vh / 2,
+        scale: Math.max(0.32, Math.min(0.88, rect.width / targetWidth)),
+      };
+    }
+
+    setActivePlayback({ session: s, origin });
     if (onNotify) onNotify(`Opening recording: "${s.title}"`);
   };
 
@@ -300,40 +359,51 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
 
                 // Get timezone directly from time field (e.g. "3:00 PM – 4:00 PM AEST")
                 let displayTime = s.time || '';
-                const hasTzInTime = /\b(AEST|AEDT|AWST|ACST|ACDT)\b/i.test(displayTime);
-                if (!hasTzInTime && s.timezone) {
-                  displayTime = `${displayTime} ${s.timezone}`;
+                if (displayTime) {
+                  const hasTzInTime = /\b(AEST|AEDT|AWST|ACST|ACDT)\b/i.test(displayTime);
+                  if (!hasTzInTime && s.timezone) {
+                    displayTime = `${displayTime} ${s.timezone}`;
+                  }
                 }
+                const metaLine = [s.wd, displayTime].filter(Boolean).join(' · ');
 
                 return (
                   <Reveal key={sessionId} delay={idx * 0.05}>
                     <div
                       className={`glass panel c-${s.cat} upcoming-session-card`}
                     >
-                      <div className="datebadge" style={{ width: 66, height: 70 }}>
-                        <b style={{ fontSize: 24 }}>{s.d}</b>
-                        <span style={{ fontSize: 12 }}>{s.mon}</span>
-                      </div>
+                      {s.d && s.mon && (
+                        <div className="datebadge" style={{ width: 66, height: 70 }}>
+                          <b style={{ fontSize: 24 }}>{s.d}</b>
+                          <span style={{ fontSize: 12 }}>{s.mon}</span>
+                        </div>
+                      )}
 
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ marginBottom: 6 }}>
-                          <span style={{ fontSize: 13.5, color: 'var(--sub)' }}>{s.wd} · {displayTime}</span>
-                        </div>
-                        <h4 style={{ fontSize: 17.5, margin: '0 0 8px 0', color: 'var(--cream)', fontWeight: 600 }}>
-                          {displayTitle}
-                        </h4>
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(sessionId)}
-                            className="session-expand-toggle"
-                            aria-expanded={isExpanded}
-                            title={isExpanded ? 'Hide session description' : 'View session description'}
-                          >
-                            <span>{isExpanded ? 'Hide details' : 'View details'}</span>
-                            <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} />
-                          </button>
-                        </div>
+                        {metaLine && (
+                          <div style={{ marginBottom: 6 }}>
+                            <span style={{ fontSize: 13.5, color: 'var(--sub)' }}>{metaLine}</span>
+                          </div>
+                        )}
+                        {displayTitle && (
+                          <h4 style={{ fontSize: 17.5, margin: s.desc ? '0 0 8px 0' : 0, color: 'var(--cream)', fontWeight: 600 }}>
+                            {displayTitle}
+                          </h4>
+                        )}
+                        {s.desc && (
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(sessionId)}
+                              className="session-expand-toggle"
+                              aria-expanded={isExpanded}
+                              title={isExpanded ? 'Hide session description' : 'View session description'}
+                            >
+                              <span>{isExpanded ? 'Hide details' : 'View details'}</span>
+                              <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="session-action-col">
@@ -367,7 +437,7 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                         </SpecularButton>
                       </div>
 
-                      {isExpanded && (
+                      {s.desc && isExpanded && (
                         <div className="session-description-panel">
                           <div className="session-description-icon">
                             <Icon name="info" />
@@ -375,7 +445,7 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                           <div className="session-description-content">
                             <div className="session-description-label">Session Overview</div>
                             <p className="session-description-text">
-                              {s.desc || 'Interactive live referencing clinic covering citation mechanics, ASQA evidence requirements, and Q&A with academic mentors.'}
+                              {s.desc}
                             </p>
                           </div>
                         </div>
@@ -410,38 +480,71 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
             </p>
           </Reveal>
 
-          {/* Clean Filter Bar in a Single Horizontal Row */}
-          <Reveal className="glass panel" style={{ marginBottom: 32, padding: '16px 20px' }}>
-            <div className="filter-group" style={{ justifyContent: 'flex-start' }}>
-              {RECORDING_FILTERS.map((f) => (
+          {/* Simple Search Bar for Previous Recorded Sessions */}
+          <Reveal
+            className="glass panel"
+            style={{
+              marginBottom: 28,
+              padding: '14px 20px',
+              borderRadius: 16,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%' }}>
+              <Icon name="search" style={{ width: 20, height: 20, color: 'var(--sub)', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search recorded sessions..."
+                value={recSearch}
+                onChange={(e) => setRecSearch(e.target.value)}
+                aria-label="Search previous recorded sessions"
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'var(--cream)',
+                  fontSize: 15.5,
+                  fontFamily: 'inherit',
+                }}
+              />
+              {recSearch && (
                 <button
-                  key={f.id}
                   type="button"
-                  className={`filter-tab${recFilter === f.id ? ' active' : ''}`}
-                  onClick={() => setRecFilter(f.id)}
+                  onClick={() => setRecSearch('')}
+                  style={{
+                    color: 'var(--sub)',
+                    fontSize: 13,
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: '1px solid var(--line)',
+                    background: 'rgba(255,255,255,0.04)',
+                    cursor: 'pointer',
+                  }}
                 >
-                  {f.label}
+                  Clear
                 </button>
-              ))}
+              )}
             </div>
           </Reveal>
 
           {/* Previous Recorded Sessions Grid - SAME CARDS AS VIDEOS PAGE */}
           {filteredRecordings.length === 0 ? (
             <div className="glass panel" style={{ padding: 36, textAlign: 'center', color: 'var(--sub)' }}>
-              No recorded sessions match the selected filter.
+              {recSearch
+                ? `No recorded sessions match "${recSearch}".`
+                : 'No recorded sessions are available at the moment.'}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 22 }}>
               {filteredRecordings.map((s, idx) => {
-                const videoUrl =
-                  s.video_url ||
-                  'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Academic%20Misconduct%20Policy%20and%20Procedure%20V3.0%20Student%20Training%20Video.mp4';
+                const videoUrl = s.video_url || '';
+                const recDateStr = s.d && s.mon ? `${s.wd ? `${s.wd}, ` : ''}${s.d} ${s.mon}${s.year ? ` ${s.year}` : ''}` : '';
+                const recMeta = [recDateStr, s.time].filter(Boolean).join(' · ');
 
                 return (
                   <Reveal key={s.id || s.title} delay={idx * 0.05}>
                     <div
-                      className="glass panel"
+                      className="glass panel recording-card"
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -451,9 +554,9 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                         borderRadius: 18,
                       }}
                     >
-                      {/* Video Thumbnail Container with Poster & Play Overlay (Same as Videos Page) */}
+                      {/* Video Thumbnail Container with Poster & Play Overlay */}
                       <div
-                        onClick={() => handlePlayRecording(s)}
+                        onClick={(e) => handlePlayRecording(s, e)}
                         style={{
                           position: 'relative',
                           aspectRatio: '16 / 9',
@@ -470,21 +573,23 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                         title={`Watch Recording: ${s.title}`}
                       >
                         {/* Subtle video preview */}
-                        <video
-                          src={videoUrl + '#t=0.5'}
-                          preload="metadata"
-                          muted
-                          playsInline
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            opacity: 0.55,
-                            filter: 'contrast(1.05) brightness(0.9)',
-                          }}
-                        />
+                        {videoUrl && (
+                          <video
+                            src={videoUrl + '#t=0.5'}
+                            preload="metadata"
+                            muted
+                            playsInline
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              opacity: 0.55,
+                              filter: 'contrast(1.05) brightness(0.9)',
+                            }}
+                          />
+                        )}
 
                         {/* Gradient vignette */}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(3,20,13,0.1) 0%, rgba(3,20,13,0.7) 100%)' }} />
@@ -507,61 +612,54 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
                         >
                           <Icon name="playSimple" style={{ width: 18, height: 18 }} />
                         </div>
-
-                        {/* Date / Time Badge */}
-                        <span
-                          style={{
-                            position: 'absolute',
-                            bottom: 8,
-                            right: 8,
-                            zIndex: 2,
-                            background: 'rgba(3, 20, 13, 0.85)',
-                            color: 'var(--cream)',
-                            fontSize: 11,
-                            fontFamily: 'var(--f-mono)',
-                            padding: '2px 7px',
-                            borderRadius: 6,
-                            border: '1px solid rgba(255,255,255,0.1)',
-                          }}
-                        >
-                          {s.d} {s.mon}
-                        </span>
                       </div>
 
-                      {/* Header details */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                        <span className="typetag">{s.type || 'Recorded Session'}</span>
-                        <span style={{ fontSize: 12.5, color: 'var(--sub)' }}>{s.wd ? `${s.wd} · ` : ''}{s.time || ''}</span>
-                      </div>
+                      {/* CPT Date / Time Meta (No fluff typetag) */}
+                      {recMeta && (
+                        <div style={{ marginBottom: 8 }}>
+                          <span style={{ fontSize: 12.5, color: 'var(--sub)' }}>{recMeta}</span>
+                        </div>
+                      )}
 
                       {/* Title */}
-                      <h4
-                        onClick={() => handlePlayRecording(s)}
-                        style={{
-                          fontSize: 16.5,
-                          lineHeight: 1.35,
-                          marginBottom: 14,
-                          color: 'var(--cream)',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {s.title}
-                      </h4>
-
-                      {/* Action Button (Same as Videos Page) */}
-                      <div style={{ marginTop: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <SpecularButton
-                          as="button"
-                          type="button"
-                          onClick={() => handlePlayRecording(s)}
-                          className="btn btn-ghost btn-sm"
-                          radius={10}
-                          style={{ flex: 1, width: '100%', justifyContent: 'center' }}
+                      {s.title && (
+                        <h4
+                          onClick={(e) => handlePlayRecording(s, e)}
+                          style={{
+                            fontSize: 16.5,
+                            lineHeight: 1.35,
+                            marginBottom: s.desc ? 8 : 14,
+                            color: 'var(--cream)',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
                         >
-                          Watch Recording <Icon name="arrow" style={{ width: 14, height: 14 }} />
-                        </SpecularButton>
-                      </div>
+                          {s.title}
+                        </h4>
+                      )}
+
+                      {/* Optional CPT Description (Only when enabled in CPT) */}
+                      {s.desc && (
+                        <p style={{ fontSize: 13.5, color: 'var(--sub)', lineHeight: 1.5, marginBottom: 14 }}>
+                          {s.desc}
+                        </p>
+                      )}
+
+                      {/* Action Button */}
+                      {videoUrl && (
+                        <div style={{ marginTop: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <SpecularButton
+                            as="button"
+                            type="button"
+                            onClick={(e) => handlePlayRecording(s, e)}
+                            className="btn btn-ghost"
+                            radius={12}
+                            style={{ flex: 1, width: '100%', padding: '12px 22px', justifyContent: 'center' }}
+                          >
+                            Watch Recording <Icon name="arrow" style={{ width: 16, height: 16 }} />
+                          </SpecularButton>
+                        </div>
+                      )}
                     </div>
                   </Reveal>
                 );
@@ -570,44 +668,125 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
           )}
         </div>
 
-        {/* Video Playback Modal */}
-        {activePlayback && (
-          <div
-            className="backdrop show"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => { if (e.target === e.currentTarget) setActivePlayback(null); }}
-          >
-            <div className="modal" style={{ width: 780, maxWidth: '95vw', padding: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ fontSize: 18, color: 'var(--cream)', margin: 0, textAlign: 'left' }}>
-                  {activePlayback.title}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setActivePlayback(null)}
-                  style={{ color: 'var(--sub)', padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6 }}
+        {/* Origin-Animated Video Playback Modal rendered via Portal to guarantee true viewport centering without scroll drift */}
+        {typeof document !== 'undefined' &&
+          createPortal(
+            <AnimatePresence>
+              {activePlayback?.session && (
+                <motion.div
+                  key="recording-playback-backdrop"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={activePlayback.session.title || 'Recorded session playback'}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) setActivePlayback(null);
+                  }}
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 1200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 20,
+                    background: 'rgba(1, 10, 6, 0.84)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    backdropFilter: 'blur(8px)',
+                    overscrollBehavior: 'contain',
+                  }}
                 >
-                  Close
-                </button>
-              </div>
-              <video
-                src={
-                  activePlayback.video_url ||
-                  'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Academic%20Misconduct%20Policy%20and%20Procedure%20V3.0%20Student%20Training%20Video.mp4'
-                }
-                controls
-                autoPlay
-                playsInline
-                style={{ width: '100%', borderRadius: 12, maxHeight: '58vh', background: '#000' }}
-              />
-              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', color: 'var(--sub)', fontSize: 13.5 }}>
-                <span>Date: {activePlayback.d} {activePlayback.mon}</span>
-                <span>Type: {activePlayback.type}</span>
-              </div>
-            </div>
-          </div>
-        )}
+                  <motion.div
+                    ref={playbackModalRef}
+                    tabIndex={-1}
+                    initial={{
+                      x: activePlayback.origin.x,
+                      y: activePlayback.origin.y,
+                      scale: activePlayback.origin.scale,
+                      opacity: 0.35,
+                    }}
+                    animate={{
+                      x: 0,
+                      y: 0,
+                      scale: 1,
+                      opacity: 1,
+                    }}
+                    exit={{
+                      x: activePlayback.origin.x,
+                      y: activePlayback.origin.y,
+                      scale: activePlayback.origin.scale,
+                      opacity: 0,
+                      transition: { duration: 0.2, ease: [0.4, 0, 1, 1] },
+                    }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 340,
+                      damping: 30,
+                      mass: 0.85,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      width: 780,
+                      maxWidth: '95vw',
+                      maxHeight: '90vh',
+                      overflowY: 'auto',
+                      borderRadius: 24,
+                      padding: 24,
+                      background: 'var(--panel-solid)',
+                      border: '1px solid var(--line-gold)',
+                      boxShadow: '0 30px 80px rgba(0, 0, 0, 0.68), 0 0 60px rgba(255, 200, 58, 0.14)',
+                      outline: 'none',
+                      transformOrigin: 'center center',
+                      willChange: 'transform, opacity',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+                      <h3 style={{ fontSize: 18.5, color: 'var(--cream)', margin: 0, textAlign: 'left', fontWeight: 600 }}>
+                        {activePlayback.session.title}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setActivePlayback(null)}
+                        style={{
+                          color: 'var(--cream)',
+                          background: 'rgba(255,255,255,0.06)',
+                          padding: '6px 12px',
+                          border: '1px solid var(--line)',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <video
+                      src={activePlayback.session.video_url || ''}
+                      controls
+                      autoPlay
+                      playsInline
+                      style={{ width: '100%', borderRadius: 12, maxHeight: '58vh', background: '#000', display: 'block' }}
+                    />
+                    {(activePlayback.session.d && activePlayback.session.mon) || activePlayback.session.time ? (
+                      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', color: 'var(--sub)', fontSize: 13.5 }}>
+                        {activePlayback.session.d && activePlayback.session.mon ? (
+                          <span>
+                            Date: {activePlayback.session.d} {activePlayback.session.mon}
+                            {activePlayback.session.year ? ` ${activePlayback.session.year}` : ''}
+                          </span>
+                        ) : <span />}
+                        {activePlayback.session.time && <span>{activePlayback.session.time}</span>}
+                      </div>
+                    ) : null}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>,
+            document.body
+          )}
 
         {/* RSVP Modal with Gravity Form Mount */}
         {rsvpSession && (

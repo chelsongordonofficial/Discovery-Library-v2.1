@@ -840,7 +840,6 @@ footer.foot{position:relative;z-index:2;border-top:1px solid var(--line);margin-
   width: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
-  will-change: clip-path, transform !important;
 }
 
 .video-showcase-row:hover {

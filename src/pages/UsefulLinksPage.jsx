@@ -1,159 +1,51 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
+import MediaPlayer, { parseMediaSource } from '../components/ui/MediaPlayer';
 import { useWpData } from '../context/WpContext';
 import { SITE_URLS } from '../data/urls';
 
-const FALLBACK_DIRECTORY = [
-  {
-    category: 'Academic Search & Research Databases',
-    items: [
-      {
-        name: 'VOCEDplus',
-        desc: 'The National Centre for Vocational Education Research (NCVER) free international research database for VET.',
-        url: 'https://www.voced.edu.au',
-        tag: 'VET Research',
-        icon: 'book',
-      },
-      {
-        name: 'Google Scholar',
-        desc: 'Freely accessible search engine indexing full text or metadata of scholarly literature across disciplines.',
-        url: 'https://scholar.google.com',
-        tag: 'General Academic',
-        icon: 'search',
-      },
-      {
-        name: 'ERIC (Education Resources Info Center)',
-        desc: 'Comprehensive online library of education research and information sponsored by the Institute of Education Sciences.',
-        url: 'https://eric.ed.gov',
-        tag: 'Education',
-        icon: 'book',
-      },
-      {
-        name: 'Trove (National Library of Australia)',
-        desc: 'Discover Australian research papers, historical archives, government gazettes, and published texts.',
-        url: 'https://trove.nla.gov.au',
-        tag: 'Australian Archives',
-        icon: 'link',
-      },
-    ],
-  },
-  {
-    category: 'VET Standards & Compliance Portals',
-    items: [
-      {
-        name: 'training.gov.au (TGA)',
-        desc: 'The official national register of information on Training Packages, Qualifications, Courses, and RTOs.',
-        url: 'https://training.gov.au',
-        tag: 'Official Register',
-        icon: 'listCheck',
-      },
-      {
-        name: 'ASQA (Australian Skills Quality Authority)',
-        desc: 'National regulator for Australia’s vocational education and training sector, providing standards and student guides.',
-        url: 'https://www.asqa.gov.au',
-        tag: 'Regulatory',
-        icon: 'lock',
-      },
-      {
-        name: 'Unique Student Identifier (USI)',
-        desc: 'Access your authenticated USI transcript and verify vocational training records across providers.',
-        url: 'https://www.usi.gov.au',
-        tag: 'Government Portal',
-        icon: 'lock',
-      },
-    ],
-  },
-  {
-    category: 'Academic Writing & Study Tools',
-    items: [
-      {
-        name: 'APA Style Official Guidelines (7th Edition)',
-        desc: 'Official formatting rules, in-text citations, and reference list sample papers from the American Psychological Association.',
-        url: 'https://apastyle.apa.org',
-        tag: 'Referencing',
-        icon: 'listCheck',
-      },
-      {
-        name: 'Purdue OWL (Online Writing Lab)',
-        desc: 'Globally recognized guide on academic writing rhetoric, paragraph organization, and mechanics.',
-        url: 'https://owl.purdue.edu',
-        tag: 'Writing Lab',
-        icon: 'book',
-      },
-    ],
-  },
-];
-
-const FILTER_OPTIONS = [
-  { id: 'all', label: 'All Resources' },
-  { id: 'search', label: 'Databases' },
-  { id: 'standards', label: 'VET Registers' },
-  { id: 'writing', label: 'Writing & Citation' },
-];
-
 export default function UsefulLinksPage({ onNotify }) {
-  const { usefulLinks } = useWpData();
+  const { usefulLinks, isLinksLoading, refetch } = useWpData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
+  const [playSignals, setPlaySignals] = useState({});
 
-  const directoryData = useMemo(() => {
-    // Live data Priority 1: If live WordPress links exist, return ONLY live items
-    if (usefulLinks && usefulLinks.length > 0) {
-      return [
-        {
-          category: 'Useful Links & Videos',
-          items: usefulLinks.map((item) => ({
-            name: item.title,
-            desc: item.desc || 'Curated link and instructional media from Discovery Library.',
-            url: item.url,
-            tag: item.tag || 'Official Resource',
-            icon: 'link',
-          })),
-        },
-      ];
+  // Ensure live CPT data is fetched if empty when opening the page
+  useEffect(() => {
+    if (!isLinksLoading && Array.isArray(usefulLinks) && usefulLinks.length === 0) {
+      refetch();
     }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Fallback data: Shown strictly when REST endpoint is unreachable or empty
-    return FALLBACK_DIRECTORY;
-  }, [usefulLinks]);
+  const filteredItems = useMemo(() => {
+    const items = Array.isArray(usefulLinks) ? usefulLinks : [];
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return items;
 
-  const filteredCategories = useMemo(() => {
-    return directoryData
-      .map((cat) => {
-        const matchesCategory =
-          activeTab === 'all' ||
-          cat.category.toLowerCase().includes(activeTab) ||
-          (activeTab === 'search' && cat.category.toLowerCase().includes('database')) ||
-          (activeTab === 'standards' && cat.category.toLowerCase().includes('vet')) ||
-          (activeTab === 'writing' && cat.category.toLowerCase().includes('writing'));
+    return items.filter((item) => {
+      const hay = [item.title, item.desc].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [usefulLinks, searchTerm]);
 
-        if (!matchesCategory) return null;
-
-        const filteredItems = cat.items.filter((item) => {
-          if (!searchTerm) return true;
-          const q = searchTerm.toLowerCase();
-          return (
-            item.name.toLowerCase().includes(q) ||
-            item.desc.toLowerCase().includes(q) ||
-            item.tag.toLowerCase().includes(q)
-          );
-        });
-
-        if (filteredItems.length === 0) return null;
-        return { ...cat, items: filteredItems };
-      })
-      .filter(Boolean);
-  }, [directoryData, activeTab, searchTerm]);
+  const triggerCardPlay = (cardKey, title) => {
+    setPlaySignals((prev) => ({
+      ...prev,
+      [cardKey]: (prev[cardKey] || 0) + 1,
+    }));
+    if (onNotify && title) {
+      onNotify(`Playing: "${title}"`);
+    }
+  };
 
   return (
     <div className="page page-links" style={{ paddingTop: 36, paddingBottom: 100 }}>
       <div className="wrap">
-        {/* Clean Back Button - No random pill */}
+        {/* Clean Back Button */}
         <div style={{ textAlign: 'left', marginBottom: 20 }}>
           <RippleButton
             as={Link}
@@ -166,7 +58,7 @@ export default function UsefulLinksPage({ onNotify }) {
           </RippleButton>
         </div>
 
-        {/* Section Header with Disciplined Typography */}
+        {/* Section Header */}
         <Reveal className="sh">
           <h2>
             <span style={{ fontFamily: 'var(--f-body)', fontWeight: 600 }}>Useful</span>{' '}
@@ -179,99 +71,177 @@ export default function UsefulLinksPage({ onNotify }) {
             </GradientText>
           </h2>
           <p>
-            Authoritative registers, research databases, and style manuals for vocational learners and trainers.
+            Authoritative registers, research databases, and instructional media from Discovery Library.
           </p>
         </Reveal>
 
-        {/* Clean Search and Filter Controls in a Single Row */}
-        <Reveal className="glass panel" style={{ marginBottom: 36, padding: '16px 20px' }}>
-          <div className="filter-bar">
-            <div className="sbox">
-              <Icon name="search" />
-              <input
-                type="text"
-                placeholder="Search resources, registers, or guides..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="filter-group">
-              {FILTER_OPTIONS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`filter-tab${activeTab === t.id ? ' active' : ''}`}
-                  onClick={() => setActiveTab(t.id)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+        {/* Clean Search Bar (No Category Filters), aligned left with heading (~65% width) */}
+        <div
+          className="glass panel"
+          style={{
+            maxWidth: 780,
+            width: '100%',
+            margin: '0 0 32px 0',
+            padding: '14px 20px',
+            borderRadius: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%' }}>
+            <Icon name="search" style={{ width: 20, height: 20, color: 'var(--sub)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search useful links and videos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search useful links and videos"
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--cream)',
+                fontSize: 15.5,
+                fontFamily: 'inherit',
+              }}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                style={{
+                  color: 'var(--sub)',
+                  fontSize: 13,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid var(--line)',
+                  background: 'rgba(255,255,255,0.04)',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear
+              </button>
+            )}
           </div>
-        </Reveal>
+        </div>
 
-        {/* Directory Grid */}
-        <div style={{ display: 'grid', gap: 32 }}>
-          {filteredCategories.length === 0 ? (
-            <div className="glass panel" style={{ padding: 36, textAlign: 'center', color: 'var(--sub)' }}>
-              No resources match your search or filter criteria.
+        {/* Live WordPress CPT Cards (~65% of section width), aligned left with heading */}
+        <div style={{ display: 'grid', gap: 24, maxWidth: 780, width: '100%', margin: 0 }}>
+          {isLinksLoading && filteredItems.length === 0 ? (
+            <div className="glass panel" style={{ padding: 40, textAlign: 'left', color: 'var(--sub)' }}>
+              Loading useful links and videos...
             </div>
-          ) : (
-            filteredCategories.map((group, groupIdx) => (
-              <Reveal key={group.category} delay={groupIdx * 0.05}>
-                <div style={{ textAlign: 'left', marginBottom: 14 }}>
-                  <h3 style={{ fontSize: 19, color: 'var(--cream)', fontWeight: 600 }}>
-                    {group.category}
-                  </h3>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-                  {group.items.map((item, idx) => (
-                    <div
-                      key={item.name + idx}
-                      className="glass panel"
+          ) : filteredItems.length === 0 ? (
+            <div className="glass panel" style={{ padding: 40, textAlign: 'left', color: 'var(--sub)' }}>
+              {searchTerm ? (
+                <>
+                  No items match &ldquo;{searchTerm}&rdquo;.
+                  <div style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
                       style={{
-                        padding: 20,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        textAlign: 'left',
-                        height: '100%',
+                        color: 'var(--cream)',
+                        fontSize: 13.5,
+                        padding: '6px 14px',
+                        borderRadius: 8,
+                        border: '1px solid var(--line)',
+                        background: 'rgba(255,255,255,0.06)',
+                        cursor: 'pointer',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span className="typetag">{item.tag}</span>
-                        <Icon name={item.icon || 'link'} className="gold" style={{ width: 18, height: 18 }} />
-                      </div>
+                      Clear Search
+                    </button>
+                  </div>
+                </>
+              ) : (
+                'No useful links or videos are published yet.'
+              )}
+            </div>
+          ) : (
+            filteredItems.map((item, idx) => {
+              const cardKey = item.id || `${item.title}-${idx}`;
+              const media = parseMediaSource(item.url);
+              const isVideoMedia =
+                media.type === 'youtube' || media.type === 'vimeo' || media.type === 'video';
 
-                      <h4 style={{ fontSize: 16.5, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
-                        {item.name}
-                      </h4>
+              return (
+                <div
+                  key={cardKey}
+                  className="glass panel"
+                  onClick={isVideoMedia ? () => triggerCardPlay(cardKey, item.title) : undefined}
+                  style={{
+                    padding: '24px 26px',
+                    borderRadius: 24,
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 14,
+                    cursor: isVideoMedia ? 'pointer' : 'default',
+                  }}
+                >
+                  {item.title && (
+                    <h3
+                      style={{
+                        fontSize: 21,
+                        lineHeight: 1.35,
+                        margin: 0,
+                        color: 'var(--cream)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {item.title}
+                    </h3>
+                  )}
 
-                      <p style={{ fontSize: 13.5, color: 'var(--sub)', flexGrow: 1, marginBottom: 16, lineHeight: 1.5 }}>
-                        {item.desc}
-                      </p>
+                  {item.desc && (
+                    <p
+                      style={{
+                        fontSize: 14.5,
+                        color: 'var(--sub)',
+                        margin: 0,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {item.desc}
+                    </p>
+                  )}
 
-                      <div style={{ marginTop: 'auto' }}>
-                        <SpecularButton
-                          as="a"
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-gold btn-sm"
-                          radius={10}
-                          style={{ width: '100%', justifyContent: 'center' }}
-                          onClick={() => {
-                            if (onNotify) onNotify(`Opening ${item.name}`);
-                          }}
-                        >
-                          Open Resource <Icon name="arrow" style={{ width: 14, height: 14 }} />
-                        </SpecularButton>
-                      </div>
+                  {isVideoMedia && item.url && (
+                    <div style={{ marginTop: 4 }}>
+                      <MediaPlayer
+                        url={item.url}
+                        title={item.title}
+                        showPosterInfo={false}
+                        playSignal={playSignals[cardKey] || 0}
+                        onPlayStart={() => {
+                          if (onNotify && item.title) onNotify(`Playing: "${item.title}"`);
+                        }}
+                      />
                     </div>
-                  ))}
+                  )}
+
+                  {media.type === 'link' && item.url && (
+                    <div style={{ marginTop: 4, display: 'flex' }}>
+                      <SpecularButton
+                        as="a"
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-gold"
+                        radius={12}
+                        style={{ padding: '12px 22px', justifyContent: 'center' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onNotify && item.title) onNotify(`Opening ${item.title}`);
+                        }}
+                      >
+                        Open Link <Icon name="arrow" style={{ width: 16, height: 16 }} />
+                      </SpecularButton>
+                    </div>
+                  )}
                 </div>
-              </Reveal>
-            ))
+              );
+            })
           )}
         </div>
       </div>

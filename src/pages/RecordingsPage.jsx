@@ -54,8 +54,8 @@ export default function RecordingsPage({ onNotify }) {
       duration: '45 mins',
       facilitator: s.facilitator || 'Discovery Library Academic Lead',
       category: s.type || 'Compliance Briefing',
-      desc: 'Recorded live workshop broadcast including student Q&A and practical case studies.',
-      url: s.video_url || 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Academic%20Misconduct%20Policy%20and%20Procedure%20V3.0%20Student%20Training%20Video.mp4',
+      desc: s.desc || '',
+      url: s.video_url || '',
       isWp: !!s.isWp,
     }));
 
@@ -77,6 +77,10 @@ export default function RecordingsPage({ onNotify }) {
   }, [allRecordings, search]);
 
   const handlePlay = (rec) => {
+    if (!rec?.url) {
+      if (onNotify) onNotify('Recording video is not available for this session yet.');
+      return;
+    }
     setActiveRec(rec);
     if (onNotify) onNotify(`Playing recording: ${rec.title}`);
   };
@@ -196,15 +200,17 @@ export default function RecordingsPage({ onNotify }) {
 
                 <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 12.5, color: 'var(--sub)' }}>{rec.date}</span>
-                  <SpecularButton
-                    as="button"
-                    type="button"
-                    onClick={() => handlePlay(rec)}
-                    className="btn btn-gold btn-sm"
-                    radius={10}
-                  >
-                    <Icon name="play" /> Watch Recording
-                  </SpecularButton>
+                  {rec.url && (
+                    <SpecularButton
+                      as="button"
+                      type="button"
+                      onClick={() => handlePlay(rec)}
+                      className="btn btn-gold btn-sm"
+                      radius={10}
+                    >
+                      <Icon name="play" /> Watch Recording
+                    </SpecularButton>
+                  )}
                 </div>
               </div>
             </Reveal>

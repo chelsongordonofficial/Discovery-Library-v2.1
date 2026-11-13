@@ -21,6 +21,7 @@ import {
 const WpContext = createContext({
   loading: true,
   isInitialLoading: true,
+  isLinksLoading: true,
   isLiveConnected: false,
   hasLiveUpcomingSessions: false,
   wpSessions: [],
@@ -43,6 +44,9 @@ export function WpProvider({ children }) {
   const cached = useMemo(() => getStoredWpCache(), []);
 
   const [loading, setLoading] = useState(!cached);
+  const [isLinksLoading, setIsLinksLoading] = useState(
+    !(cached && Array.isArray(cached.links) && cached.links.length > 0)
+  );
   const [isLiveConnected, setIsLiveConnected] = useState(!!cached);
   const [isNewslettersLive, setIsNewslettersLive] = useState(Array.isArray(cached?.newsletters));
   const [wpSessions, setWpSessions] = useState(cached?.sessions || []);
@@ -81,26 +85,28 @@ export function WpProvider({ children }) {
       const connected =
         (liveSessions !== null && liveSessions.length > 0) ||
         (liveVideos !== null && liveVideos.length > 0) ||
-        (liveLinks !== null && liveLinks.length > 0) ||
+        liveLinks !== null ||
         liveNews !== null;
 
       if (connected) {
         setIsLiveConnected(true);
       }
 
-      // Save to localStorage cache for instant 0ms subsequent renders
+      // Preserve existing cached slices for any endpoint that returned null so a transient error never wipes live data
       if (liveSessions !== null || liveNews !== null || liveVideos !== null || liveLinks !== null) {
+        const prevCache = getStoredWpCache() || {};
         setStoredWpCache({
-          sessions: liveSessions || [],
-          videos: liveVideos || [],
-          links: liveLinks || [],
-          newsletters: liveNews !== null ? liveNews : null,
+          sessions: liveSessions !== null ? liveSessions : prevCache.sessions || [],
+          videos: liveVideos !== null ? liveVideos : prevCache.videos || [],
+          links: liveLinks !== null ? liveLinks : prevCache.links || [],
+          newsletters: liveNews !== null ? liveNews : prevCache.newsletters ?? null,
         });
       }
     } catch (err) {
       console.warn('[WpProvider] Error loading WP content:', err);
     } finally {
       setLoading(false);
+      setIsLinksLoading(false);
     }
   }, []);
 
@@ -141,6 +147,7 @@ export function WpProvider({ children }) {
     () => ({
       loading,
       isInitialLoading: loading && !cached,
+      isLinksLoading,
       isLiveConnected,
       hasLiveUpcomingSessions,
       wpSessions,
@@ -160,6 +167,7 @@ export function WpProvider({ children }) {
     [
       loading,
       cached,
+      isLinksLoading,
       isLiveConnected,
       isNewslettersLive,
       hasLiveUpcomingSessions,

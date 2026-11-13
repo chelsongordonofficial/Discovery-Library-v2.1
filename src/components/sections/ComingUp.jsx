@@ -91,15 +91,23 @@ function ComingUp() {
 
                 return (
                   <Reveal key={s.id || s.title} className={`uprow c-${s.cat}`} delay={i * 0.1}>
-                    <div className="datebadge"><b>{s.d}</b><span>{s.mon}</span></div>
+                    {s.d && s.mon && (
+                      <div className="datebadge"><b>{s.d}</b><span>{s.mon}</span></div>
+                    )}
                     <div className="uprow-info" style={{ textAlign: 'left', justifySelf: 'start' }}>
-                      <h3 style={{ textAlign: 'left' }}>{displayTitle}</h3>
-                      <div className="m" style={{ textAlign: 'left' }}>{s.wd} · {displayTime}</div>
+                      {displayTitle && <h3 style={{ textAlign: 'left' }}>{displayTitle}</h3>}
+                      {[s.wd, displayTime].filter(Boolean).length > 0 && (
+                        <div className="m" style={{ textAlign: 'left' }}>
+                          {[s.wd, displayTime].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
                     </div>
-                    <span className="typetag">
-                      {getSessionTypeIcon(s.type)}
-                      <span>{s.type}</span>
-                    </span>
+                    {s.type && (
+                      <span className="typetag">
+                        {getSessionTypeIcon(s.type)}
+                        <span>{s.type}</span>
+                      </span>
+                    )}
                   </Reveal>
                 );
               })}

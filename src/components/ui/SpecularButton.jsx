@@ -62,18 +62,49 @@ function SpecularButton({
 
     const pointer = { x: 0, y: 0, known: false };
 
+    let isVisible = true;
+    let needsDraw = true;
+    let cachedRect = null;
+
+    const invalidateRect = () => {
+      cachedRect = null;
+    };
+
+    const scheduleFrame = () => {
+      if (!animRef.current && isVisible) {
+        lastTime = performance.now();
+        animRef.current = requestAnimationFrame(render);
+      }
+    };
+
     const onPointerMove = (e) => {
       pointer.x = e.clientX;
       pointer.y = e.clientY;
       pointer.known = true;
+      needsDraw = true;
+      scheduleFrame();
     };
 
     const onPointerLeave = () => {
       pointer.known = false;
+      needsDraw = true;
+      scheduleFrame();
     };
 
     const onPointerDown = () => {
-      if (!disabled) pressLevel = 1;
+      if (!disabled) {
+        pressLevel = 1;
+        needsDraw = true;
+        scheduleFrame();
+      }
+    };
+
+    const onScrollOrResize = () => {
+      cachedRect = null;
+      if (pointer.known && isVisible) {
+        needsDraw = true;
+        scheduleFrame();
+      }
     };
 
     // Calculate intersection on rounded rectangle rim
@@ -121,14 +152,18 @@ function SpecularButton({
     };
 
     const render = (time) => {
+      animRef.current = 0;
+      if (!isVisible) return;
+
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
 
-      const rect = button.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-
       if (followMouse && pointer.known) {
+        if (!cachedRect) {
+          cachedRect = button.getBoundingClientRect();
+        }
+        const centerX = cachedRect.left + cachedRect.width / 2;
+        const centerY = cachedRect.top + cachedRect.height / 2;
         const dx = pointer.x - centerX;
         const dy = pointer.y - centerY;
         const dist = Math.hypot(dx, dy);
@@ -152,87 +187,139 @@ function SpecularButton({
       // Smooth shortest-path angle lerp
       let diff = targetAngle - curAngle;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      const levelDiff = targetLevel - curLevel;
+
       curAngle += diff * (1 - Math.exp(-dt * 9));
-      curLevel += (targetLevel - curLevel) * (1 - Math.exp(-dt * 7));
+      curLevel += levelDiff * (1 - Math.exp(-dt * 7));
       pressLevel *= Math.exp(-dt * 6);
 
-      // Canvas clear & coordinate transform
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.scale(ratio, ratio);
+      const isSettled =
+        !autoAnimate &&
+        Math.abs(diff) < 0.001 &&
+        Math.abs(levelDiff) < 0.001 &&
+        pressLevel < 0.002;
 
-      const r = Math.min(radius, width / 2, height / 2);
-      const halfW = width / 2;
-      const halfH = height / 2;
-      const [rimX, rimY] = getRimCoordinates(curAngle, halfW, halfH, r);
-      const spotX = PAD + halfW + rimX;
-      const spotY = PAD + halfH + rimY;
-
-      // 1. Subtle hairline border outline
-      ctx.save();
-      drawPath(ctx, PAD + 0.5, PAD + 0.5, width - 1, height - 1, r);
-      ctx.lineWidth = 1;
-      const isGreen = typeof baseColor === 'string' && (baseColor.toLowerCase().includes('19d68a') || baseColor.toLowerCase().includes('green') || baseColor.toLowerCase().includes('em'));
-      ctx.strokeStyle = isGreen ? 'rgba(25, 214, 138, 0.35)' : 'rgba(255, 216, 96, 0.35)';
-      ctx.stroke();
-      ctx.restore();
-
-      // 2. Specular radial gradient highlight centered on the rim point
-      const effectiveIntensity = intensity * (curLevel + pressLevel * 0.9);
-      const spotRadius = Math.max(width * 0.38, 55);
-      const grad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, spotRadius);
-
-      const a1 = Math.min(1, 0.98 * effectiveIntensity);
-      const a2 = Math.min(1, 0.72 * effectiveIntensity);
-      const a3 = Math.min(1, 0.32 * effectiveIntensity);
-
-      if (isGreen) {
-        grad.addColorStop(0, `rgba(255, 255, 255, ${a1})`);
-        grad.addColorStop(0.2, `rgba(180, 255, 225, ${a2})`);
-        grad.addColorStop(0.55, `rgba(25, 214, 138, ${a3})`);
-        grad.addColorStop(1, 'rgba(25, 214, 138, 0)');
-      } else {
-        grad.addColorStop(0, `rgba(255, 255, 255, ${a1})`);
-        grad.addColorStop(0.2, `rgba(255, 244, 200, ${a2})`);
-        grad.addColorStop(0.55, `rgba(255, 200, 58, ${a3})`);
-        grad.addColorStop(1, 'rgba(255, 200, 58, 0)');
+      if (isSettled) {
+        curAngle = targetAngle;
+        curLevel = targetLevel;
+        pressLevel = 0;
       }
 
-      // 3. Specular ambient halo (glow)
-      ctx.save();
-      drawPath(ctx, PAD + 0.5, PAD + 0.5, width - 1, height - 1, r);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = grad;
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.65)';
-      ctx.shadowBlur = 8 * curLevel;
-      ctx.stroke();
-      ctx.restore();
+      if (needsDraw || !isSettled || autoAnimate) {
+        needsDraw = false;
 
-      // 4. Sharp crisp specular rim light beam
-      ctx.save();
-      drawPath(ctx, PAD + 0.5, PAD + 0.5, width - 1, height - 1, r);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = grad;
-      ctx.stroke();
-      ctx.restore();
+        // Canvas clear & coordinate transform
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(ratio, ratio);
 
-      ctx.restore();
+        const r = Math.min(radius, width / 2, height / 2);
+        const halfW = width / 2;
+        const halfH = height / 2;
+        const [rimX, rimY] = getRimCoordinates(curAngle, halfW, halfH, r);
+        const spotX = PAD + halfW + rimX;
+        const spotY = PAD + halfH + rimY;
 
-      animRef.current = requestAnimationFrame(render);
+        // 1. Subtle hairline border outline
+        ctx.save();
+        drawPath(ctx, PAD + 0.5, PAD + 0.5, width - 1, height - 1, r);
+        ctx.lineWidth = 1;
+        const isGreen =
+          typeof baseColor === 'string' &&
+          (baseColor.toLowerCase().includes('19d68a') ||
+            baseColor.toLowerCase().includes('green') ||
+            baseColor.toLowerCase().includes('em'));
+        ctx.strokeStyle = isGreen ? 'rgba(25, 214, 138, 0.35)' : 'rgba(255, 216, 96, 0.35)';
+        ctx.stroke();
+        ctx.restore();
+
+        // 2. Specular radial gradient highlight centered on the rim point
+        const effectiveIntensity = intensity * (curLevel + pressLevel * 0.9);
+        const spotRadius = Math.max(width * 0.38, 55);
+        const grad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, spotRadius);
+
+        const a1 = Math.min(1, 0.98 * effectiveIntensity);
+        const a2 = Math.min(1, 0.72 * effectiveIntensity);
+        const a3 = Math.min(1, 0.32 * effectiveIntensity);
+
+        if (isGreen) {
+          grad.addColorStop(0, `rgba(255, 255, 255, ${a1})`);
+          grad.addColorStop(0.2, `rgba(180, 255, 225, ${a2})`);
+          grad.addColorStop(0.55, `rgba(25, 214, 138, ${a3})`);
+          grad.addColorStop(1, 'rgba(25, 214, 138, 0)');
+        } else {
+          grad.addColorStop(0, `rgba(255, 255, 255, ${a1})`);
+          grad.addColorStop(0.2, `rgba(255, 244, 200, ${a2})`);
+          grad.addColorStop(0.55, `rgba(255, 200, 58, ${a3})`);
+          grad.addColorStop(1, 'rgba(255, 200, 58, 0)');
+        }
+
+        // 3. Specular ambient halo (glow)
+        ctx.save();
+        drawPath(ctx, PAD + 0.5, PAD + 0.5, width - 1, height - 1, r);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = grad;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.65)';
+        ctx.shadowBlur = 8 * curLevel;
+        ctx.stroke();
+        ctx.restore();
+
+        // 4. Sharp crisp specular rim light beam
+        ctx.save();
+        drawPath(ctx, PAD + 0.5, PAD + 0.5, width - 1, height - 1, r);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = grad;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      if (!isSettled || autoAnimate) {
+        animRef.current = requestAnimationFrame(render);
+      }
     };
 
-    animRef.current = requestAnimationFrame(render);
+    const io =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            (entries) => {
+              const entry = entries[0];
+              isVisible = Boolean(entry?.isIntersecting);
+              invalidateRect();
+              if (isVisible) {
+                needsDraw = true;
+                scheduleFrame();
+              } else if (animRef.current) {
+                cancelAnimationFrame(animRef.current);
+                animRef.current = 0;
+              }
+            },
+            { rootMargin: '80px 0px' }
+          )
+        : null;
+    if (io) io.observe(button);
+
+    scheduleFrame();
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
     document.documentElement.addEventListener('pointerleave', onPointerLeave);
     button.addEventListener('pointerdown', onPointerDown);
 
-    const ro = new ResizeObserver(updateSize);
+    const ro = new ResizeObserver(() => {
+      updateSize();
+      invalidateRect();
+      needsDraw = true;
+      scheduleFrame();
+    });
     ro.observe(button);
 
     return () => {
-      cancelAnimationFrame(animRef.current);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      if (io) io.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('scroll', onScrollOrResize);
       document.documentElement.removeEventListener('pointerleave', onPointerLeave);
       button.removeEventListener('pointerdown', onPointerDown);
       ro.disconnect();

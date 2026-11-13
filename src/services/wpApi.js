@@ -16,7 +16,7 @@ import {
 } from '../data/index.js';
 
 export const WP_DOMAIN = 'https://discoverylibrary.com.au';
-const CACHE_KEY = 'discovery_library_wp_cache_v7';
+const CACHE_KEY = 'discovery_library_wp_cache_v10';
 
 export const WP_ENDPOINTS = {
   trainingVideos: `${WP_DOMAIN}/wp-json/wp/v2/training_video`,
@@ -35,6 +35,9 @@ export function getStoredWpCache() {
     localStorage.removeItem('discovery_library_wp_cache_v1');
     localStorage.removeItem('discovery_library_wp_cache_v2');
     localStorage.removeItem('discovery_library_wp_cache_v6');
+    localStorage.removeItem('discovery_library_wp_cache_v7');
+    localStorage.removeItem('discovery_library_wp_cache_v8');
+    localStorage.removeItem('discovery_library_wp_cache_v9');
 
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
@@ -140,8 +143,10 @@ export function isSessionUpcoming(session, now = new Date()) {
  */
 export function normalizeUpcomingSession(item) {
   if (!item) return null;
+  const meta = item.meta || {};
+  if (meta.is_visible === false) return null;
 
-  const rawTitle = decodeHtml(item.title?.rendered || 'Session');
+  const rawTitle = meta.show_title === false ? '' : decodeHtml(item.title?.rendered || '');
 
   // Exclude {AEDT} or {AEST} from displaying in the website title
   const title = rawTitle
@@ -149,47 +154,48 @@ export function normalizeUpcomingSession(item) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-  const meta = item.meta || {};
-  const dateStr = meta.session_date || (item.date ? item.date.split('T')[0] : '');
+  const isDateHidden = meta.show_session_date === false || ('session_date' in meta && meta.session_date === null);
+  const dateStr = isDateHidden ? '' : (meta.session_date || (item.date ? item.date.split('T')[0] : ''));
 
-  // Time field can be a range of time (e.g. "3:00 PM – 4:00 PM AEST" or "10:00 AM - 11:30 AM AEDT")
-  let timeStr = meta.session_time || item.session_time || '2:00 PM – 3:30 PM AEST';
+  const isTimeHidden = meta.show_session_time === false || ('session_time' in meta && meta.session_time === null);
+  let timeStr = isTimeHidden ? '' : (meta.session_time || item.session_time || '');
 
-  // 1. Get timezone directly from time field (e.g., AEST, AEDT, AWST, ACST)
-  let detectedTz = 'AEST';
-  const tzInTimeMatch = timeStr.match(/\b(AEST|AEDT|AWST|ACST|ACDT)\b/i);
-  if (tzInTimeMatch) {
-    detectedTz = tzInTimeMatch[1].toUpperCase();
-  } else {
-    // Fallback: check if timezone was in title
-    const tzInTitleMatch = rawTitle.match(/\{(AEDT|AEST)\}/i);
-    if (tzInTitleMatch) {
-      detectedTz = tzInTitleMatch[1].toUpperCase();
-      timeStr = `${timeStr} ${detectedTz}`;
+  // Extract timezone only if provided in timeStr or title
+  let detectedTz = '';
+  if (timeStr) {
+    const tzInTimeMatch = timeStr.match(/\b(AEST|AEDT|AWST|ACST|ACDT)\b/i);
+    if (tzInTimeMatch) {
+      detectedTz = tzInTimeMatch[1].toUpperCase();
+    } else {
+      const tzInTitleMatch = rawTitle.match(/\{(AEDT|AEST)\}/i);
+      if (tzInTitleMatch) {
+        detectedTz = tzInTitleMatch[1].toUpperCase();
+        timeStr = `${timeStr} ${detectedTz}`;
+      }
     }
   }
 
-  // Extract description from CPT content, excerpt, or meta
-  const rawDesc = meta.description || item.content?.rendered || item.excerpt?.rendered || '';
-  const desc = decodeHtml(rawDesc.replace(/<[^>]+>/g, '').trim()) ||
-    'Interactive live referencing clinic covering citation mechanics, ASQA evidence requirements, and Q&A with academic mentors.';
+  // Extract description strictly when enabled from CPT
+  const isDescHidden = meta.show_description === false || ('description' in meta && meta.description === null);
+  const rawDesc = isDescHidden ? '' : (meta.description || '');
+  const desc = decodeHtml(rawDesc.replace(/<[^>]+>/g, '').trim());
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  let d = '01';
-  let mon = 'Jan';
-  let wd = 'Mon';
-  let iso = new Date().toISOString();
+  let d = '';
+  let mon = '';
+  let wd = '';
+  let year = '';
+  let iso = item.date || '';
 
   if (dateStr) {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
+      const yearNum = parseInt(parts[0], 10);
       const monthIdx = parseInt(parts[1], 10) - 1;
       const dayNum = parseInt(parts[2], 10);
 
-      // Parse start hours and minutes from time range (e.g. "3:00 PM – 4:00 PM AEST")
       let hours = 14;
       let minutes = 0;
       if (timeStr) {
@@ -211,37 +217,28 @@ export function normalizeUpcomingSession(item) {
         }
       }
 
-      const dateObj = new Date(year, monthIdx, dayNum, hours, minutes, 0);
+      const dateObj = new Date(yearNum, monthIdx, dayNum, hours, minutes, 0);
       d = String(dayNum).padStart(2, '0');
-      mon = months[monthIdx] || 'Aug';
-      wd = days[dateObj.getDay()] || 'Fri';
+      mon = months[monthIdx] || '';
+      wd = days[dateObj.getDay()] || '';
+      year = String(yearNum);
       iso = dateObj.toISOString();
     }
   }
 
-  // Determine type and category tag based on title keywords
+  // Categorization kept strictly for optional filter matching
   const lower = title.toLowerCase();
-  let type = 'Live session';
   let cat = 'live';
-
   if (lower.includes('workshop')) {
-    type = 'Workshop';
     cat = 'workshop';
   } else if (lower.includes('webinar')) {
-    type = 'Webinar';
     cat = 'webinar';
-  } else if (lower.includes('clinic')) {
-    type = 'Clinic';
-    cat = 'live';
-  } else if (lower.includes('policy') || lower.includes('procedure') || lower.includes('briefing') || lower.includes('standard')) {
-    type = 'Information Briefing';
-    cat = 'live';
   }
 
   const sessionObj = {
     id: item.id,
     cat,
-    type,
+    type: '',
     title,
     rawTitle,
     desc,
@@ -249,11 +246,12 @@ export function normalizeUpcomingSession(item) {
     d,
     mon,
     wd,
+    year,
     time: timeStr,
     iso,
     rawDate: dateStr,
-    video_url: meta.video_url || '',
-    link: item.link || SITE_URLS.sessions,
+    video_url: meta.show_video_url === false ? '' : (meta.video_url || ''),
+    link: item.link || '',
     isWp: true,
   };
 
@@ -269,17 +267,19 @@ export function normalizeUpcomingSession(item) {
  */
 export function normalizeTrainingVideo(item) {
   if (!item) return null;
-  const title = decodeHtml(item.title?.rendered || 'Training Video');
   const meta = item.meta || {};
-  const description = decodeHtml(meta.description || '');
+  if (meta.is_visible === false) return null;
+
+  const title = meta.show_title === false ? '' : decodeHtml(item.title?.rendered || 'Training Video');
+  const description = meta.show_description === false ? '' : decodeHtml(meta.description || '');
 
   return {
     id: item.id,
     title,
-    desc: description || 'Comprehensive instructional training video for VET students and staff.',
-    video_url: meta.video_url || '',
-    quiz_link: meta.quiz_link || '',
-    link: item.link || SITE_URLS.videos,
+    desc: description,
+    video_url: meta.show_video_url === false ? '' : (meta.video_url || ''),
+    quiz_link: meta.show_quiz_link === false ? '' : (meta.quiz_link || ''),
+    link: item.link || '',
     isWp: true,
   };
 }
@@ -289,14 +289,16 @@ export function normalizeTrainingVideo(item) {
  */
 export function normalizeUsefulLink(item) {
   if (!item) return null;
-  const title = decodeHtml(item.title?.rendered || 'Useful Link & Resource');
   const meta = item.meta || {};
+  if (meta.is_visible === false) return null;
+
+  const title = meta.show_title === false ? '' : decodeHtml(item.title?.rendered || 'Useful Link & Resource');
 
   return {
     id: item.id,
     title,
-    desc: decodeHtml(meta.description || meta.desc || ''),
-    url: meta.url || meta.link || item.link || SITE_URLS.links,
+    desc: meta.show_description === false ? '' : decodeHtml(meta.description || meta.desc || ''),
+    url: meta.show_video_url === false ? '' : (meta.video_url || meta.url || meta.link || ''),
     isWp: true,
   };
 }
@@ -429,7 +431,7 @@ export function normalizeNewsletter(item) {
 /**
  * Fetch with timeout helper
  */
-async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -447,7 +449,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
  */
 export async function fetchUpcomingSessions() {
   try {
-    const res = await fetchWithTimeout(`${WP_ENDPOINTS.upcomingSessions}?per_page=50&_embed=true`);
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.upcomingSessions}?per_page=100`);
     if (!res.ok) throw new Error(`WP upcoming_session status ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data)) {
@@ -465,16 +467,16 @@ export async function fetchUpcomingSessions() {
  */
 export async function fetchTrainingVideos() {
   try {
-    const res = await fetchWithTimeout(`${WP_ENDPOINTS.trainingVideos}?per_page=50&_embed=true`);
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.trainingVideos}?per_page=100`);
     if (!res.ok) throw new Error(`WP training_video status ${res.status}`);
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       return data.map(normalizeTrainingVideo).filter(Boolean);
     }
     return [];
   } catch (err) {
-    console.warn('[Discovery Library] Failed to fetch training_video from WP, using fallback:', err.message);
-    return [];
+    console.warn('[Discovery Library] Failed to fetch training_video from WP:', err.message);
+    return null;
   }
 }
 
@@ -482,18 +484,25 @@ export async function fetchTrainingVideos() {
  * Fetch Useful Links & Videos from WordPress
  */
 export async function fetchUsefulLinks() {
-  try {
-    const res = await fetchWithTimeout(`${WP_ENDPOINTS.usefulLinks}?per_page=50&_embed=true`);
-    if (!res.ok) throw new Error(`WP useful_link_video status ${res.status}`);
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map(normalizeUsefulLink).filter(Boolean);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const res = await fetchWithTimeout(`${WP_ENDPOINTS.usefulLinks}?per_page=100`);
+      if (!res.ok) throw new Error(`WP useful_link_video status ${res.status}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data.map(normalizeUsefulLink).filter(Boolean);
+      }
+      return [];
+    } catch (err) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
+      console.warn('[Discovery Library] Failed to fetch useful_link_video from WP:', err.message);
+      return null;
     }
-    return [];
-  } catch (err) {
-    console.warn('[Discovery Library] Failed to fetch useful_link_video from WP, using fallback:', err.message);
-    return [];
   }
+  return null;
 }
 
 /**
@@ -502,7 +511,7 @@ export async function fetchUsefulLinks() {
  */
 export async function fetchNewsletters() {
   try {
-    const res = await fetchWithTimeout(`${WP_ENDPOINTS.newsletters}?per_page=100&_embed=true`);
+    const res = await fetchWithTimeout(`${WP_ENDPOINTS.newsletters}?per_page=100`);
     if (!res.ok) throw new Error(`WP newsletter status ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data)) {

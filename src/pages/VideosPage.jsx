@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { motion } from 'motion/react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
@@ -19,10 +19,10 @@ export default function VideosPage({ onNotify }) {
     const liveItems = (wpVideos || []).map((v, idx) => ({
       id: `wp-${v.id || idx}`,
       title: v.title,
-      desc: v.desc || 'Comprehensive instructional training video for VET students and staff.',
+      desc: v.desc || '',
       duration: '12:00',
-      url: v.video_url || 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/training/Effective%20Prompting%20%20Tips%20and%20techniques.mp4',
-      quiz_link: v.quiz_link || 'https://forms.gle/EfYLeaWkr51kSdYc7',
+      url: v.video_url || '',
+      quiz_link: v.quiz_link || '',
       isWp: true,
     }));
 
@@ -64,6 +64,10 @@ export default function VideosPage({ onNotify }) {
   }, [allVideos, search]);
 
   const handlePlay = (video) => {
+    if (!video?.url) {
+      if (onNotify) onNotify('Video is not available for this training yet.');
+      return;
+    }
     setActiveVideo(video);
     if (onNotify) onNotify(`Opening "${video.title}"`);
   };
@@ -233,70 +237,45 @@ export default function VideosPage({ onNotify }) {
 }
 
 /**
- * 1-Card-Per-Row Video Card with active motion.dev scroll reveal effect applied to the WHOLE card
- * Continuously transforms (clipPath curtain, scale, y parallax, opacity, inner video zoom) while scrolling
+ * 1-Card-Per-Row Video Card with lightweight GPU entrance and lazy viewport-gated video thumbnail loading
+ * so navigating to #/videos renders immediately without opening 30+ simultaneous video decoders.
  */
 function VideoCardRow({ video: v, index, onPlay }) {
   const containerRef = useRef(null);
+  const [loadPreview, setLoadPreview] = useState(index < 3);
 
-  // motion.dev scroll reveal: tracks scroll progress as card moves from viewport bottom to center
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start end', 'center 50%'],
-  });
+  useEffect(() => {
+    if (loadPreview) return undefined;
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setLoadPreview(true);
+      return undefined;
+    }
 
-  // Dynamic whole-card curtain reveal:
-  // 0% horizontal inset so card left/right padding and text are NEVER cut off
-  const clipPath = useTransform(
-    scrollYProgress,
-    [0, 1],
-    ['inset(10% 0% 10% 0% round 24px)', 'inset(0% 0% 0% 0% round 20px)']
-  );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setLoadPreview(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '250px 0px' }
+    );
 
-  // Active scroll transforms on the whole card
-  const scale = useTransform(scrollYProgress, [0, 1], [0.90, 1.0]);
-  const y = useTransform(scrollYProgress, [0, 1], [48, 0]);
-
-  // First card has 100% opacity on page load; subsequent cards smoothly bloom in
-  const opacity = useTransform(
-    scrollYProgress,
-    [0, 1],
-    index === 0 ? [1.0, 1.0] : [0.35, 1.0]
-  );
-
-  // Subtle var(--mint) outline highlight when the card is active / in focus
-  const borderColor = useTransform(
-    scrollYProgress,
-    [0.75, 1],
-    index === 0
-      ? ['rgba(140, 247, 197, 0.38)', 'rgba(140, 247, 197, 0.48)']
-      : ['rgba(120, 240, 190, 0.16)', 'rgba(140, 247, 197, 0.42)']
-  );
-
-  const boxShadow = useTransform(
-    scrollYProgress,
-    [0.75, 1],
-    [
-      '0 4px 20px rgba(0, 0, 0, 0.25)',
-      '0 16px 40px rgba(25, 214, 138, 0.12)',
-    ]
-  );
-
-  // Layered parallax zoom on the video preview inside the thumbnail
-  const videoScale = useTransform(scrollYProgress, [0, 1], [1.14, 1.0]);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadPreview]);
 
   return (
     <div ref={containerRef} style={{ width: '100%' }}>
       <motion.div
         className="glass panel video-showcase-row"
+        initial={index < 2 ? false : { opacity: 0, y: 20, scale: 0.985 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, amount: 0.08 }}
+        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
         style={{
-          clipPath,
-          scale,
-          y,
-          opacity,
-          borderColor,
-          boxShadow,
-          transformOrigin: 'center center',
+          borderColor: index === 0 ? 'rgba(140, 247, 197, 0.42)' : undefined,
         }}
       >
         {/* Video Thumbnail Container */}
@@ -305,23 +284,24 @@ function VideoCardRow({ video: v, index, onPlay }) {
           onClick={() => onPlay(v)}
           title={`Play: ${v.title}`}
         >
-          {/* Video preview element with parallax scale */}
-          <motion.video
-            src={v.url + '#t=0.5'}
-            preload="metadata"
-            muted
-            playsInline
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: 0.65,
-              filter: 'contrast(1.05) brightness(0.92)',
-              scale: videoScale,
-            }}
-          />
+          {/* Video preview element mounted only when card is near the viewport */}
+          {v.url && loadPreview && (
+            <video
+              src={v.url + '#t=0.5'}
+              preload="metadata"
+              muted
+              playsInline
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: 0.65,
+                filter: 'contrast(1.05) brightness(0.92)',
+              }}
+            />
+          )}
 
           {/* Gradient vignette */}
           <div
@@ -403,16 +383,18 @@ function VideoCardRow({ video: v, index, onPlay }) {
 
           {/* Card Action Buttons (Watch Video with Specular Ghost & Take Quiz) */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <SpecularButton
-              as="button"
-              type="button"
-              onClick={() => onPlay(v)}
-              className="btn btn-ghost"
-              radius={12}
-              style={{ padding: '12px 22px', justifyContent: 'center' }}
-            >
-              Watch Video <Icon name="arrow" style={{ width: 16, height: 16 }} />
-            </SpecularButton>
+            {v.url && (
+              <SpecularButton
+                as="button"
+                type="button"
+                onClick={() => onPlay(v)}
+                className="btn btn-ghost"
+                radius={12}
+                style={{ padding: '12px 22px', justifyContent: 'center' }}
+              >
+                Watch Video <Icon name="arrow" style={{ width: 16, height: 16 }} />
+              </SpecularButton>
+            )}
 
             {v.quiz_link && (
               <RippleButton
