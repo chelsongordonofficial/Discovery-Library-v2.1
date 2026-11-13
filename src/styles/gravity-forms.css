@@ -611,8 +611,7 @@
 }
 
 /* 13. Submission Confirmation & Success */
-.gform_confirmation_wrapper,
-.gform_confirmation_message {
+.gform_confirmation_wrapper{
   background: rgba(25, 214, 138, 0.1) !important;
   border: 1px solid rgba(25, 214, 138, 0.35) !important;
   border-radius: 16px !important;
@@ -622,6 +621,14 @@
   line-height: 1.6 !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
   text-align: left !important;
+}
+
+.gform_confirmation_message {
+  border: none !important;
+    background: none !important;
+    border-radius: 0px !important;
+    padding: 0px !important;
+    box-shadow: none !important;
 }
 
 .gform_confirmation_message h3,
