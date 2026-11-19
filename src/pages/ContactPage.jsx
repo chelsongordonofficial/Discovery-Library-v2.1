@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import GradientText from '../components/ui/GradientText';
+import { useRouter } from '../context/RouterContext';
 
 const CAMPUS_LOCATIONS = [
   { city: 'Brisbane', address: 'Level 2, 288 Edward Street, Brisbane QLD 4000', hours: 'Mon–Fri: 8:00 AM – 6:00 PM', email: 'library.bne@aibtglobal.edu.au' },
@@ -13,7 +14,7 @@ const CAMPUS_LOCATIONS = [
   { city: 'Hobart', address: 'Suite 4, 111 Macquarie Street, Hobart TAS 7000', hours: 'Mon–Fri: 9:00 AM – 5:00 PM', email: 'library.hba@aibtglobal.edu.au' },
 ];
 
-const FAQS = [
+export const FAQS = [
   {
     q: 'How do I access peer-reviewed journals for free?',
     a: 'Vocational students have free access to VOCEDplus, Google Scholar, ERIC, and DOAJ via the Resources page. No paywalls or external subscriptions are required.',
@@ -35,7 +36,21 @@ const FAQS = [
 import { useGravityFormMount } from '../services/gravityFormHandler';
 
 export default function ContactPage({ onNotify }) {
+  const { currentRoute } = useRouter();
   const [openFaq, setOpenFaq] = useState(null);
+
+  useEffect(() => {
+    const queryStr = currentRoute.split('?')[1];
+    if (queryStr) {
+      const faqParam = new URLSearchParams(queryStr).get('faq');
+      if (faqParam !== null) {
+        const idx = parseInt(faqParam, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < FAQS.length) {
+          setOpenFaq(idx);
+        }
+      }
+    }
+  }, [currentRoute]);
 
   useGravityFormMount('gravity-form-mount', () => {
     if (onNotify) onNotify('Consultation request received! Thank you.');
@@ -81,11 +96,8 @@ export default function ContactPage({ onNotify }) {
           <Reveal className="glass panel gform-mount-container" style={{ padding: '28px 30px', textAlign: 'left' }}>
             <div className="gform-mount-header" style={{ marginBottom: 22 }}>
               <h3 style={{ fontSize: 20, marginBottom: 8, color: 'var(--cream)', fontWeight: 600 }}>
-                Book a Consultation or Send an Enquiry
+                Book a Consultation
               </h3>
-              <p style={{ color: 'var(--sub)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                Need help with APA 7th referencing, locating research journal papers, or navigating Moodle? Submit your enquiry below.
-              </p>
             </div>
 
             {/* Designated Mount Container for WordPress Gravity Forms */}

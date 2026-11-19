@@ -7,12 +7,26 @@ import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import MediaPlayer, { parseMediaSource } from '../components/ui/MediaPlayer';
 import { useWpData } from '../context/WpContext';
+import { useRouter } from '../context/RouterContext';
 import { SITE_URLS } from '../data/urls';
 
 export default function UsefulLinksPage({ onNotify }) {
   const { usefulLinks, isLinksLoading, refetch } = useWpData();
+  const { currentRoute } = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [playSignals, setPlaySignals] = useState({});
+
+  useEffect(() => {
+    const queryStr = currentRoute.split('?')[1];
+    if (queryStr) {
+      const qParam = new URLSearchParams(queryStr).get('q');
+      if (qParam !== null) {
+        setSearchTerm(qParam);
+        return;
+      }
+    }
+    setSearchTerm('');
+  }, [currentRoute]);
 
   // Ensure live CPT data is fetched if empty when opening the page
   useEffect(() => {

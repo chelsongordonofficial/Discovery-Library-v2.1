@@ -6,8 +6,10 @@ import Reveal from '../components/ui/Reveal';
 import RippleButton from '../components/ui/RippleButton';
 import GradientText from '../components/ui/GradientText';
 import { REFERENCING_SECTIONS } from '../data/referencingData';
+import { useRouter } from '../context/RouterContext';
 
 export default function ReferencingPage({ onCopy, onNotify }) {
+  const { currentRoute } = useRouter();
   const [activeSectionId, setActiveSectionId] = useState('intro');
   const [activeTabId, setActiveTabId] = useState('1-1');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,7 +22,14 @@ export default function ReferencingPage({ onCopy, onNotify }) {
       let tabParam = null;
 
       if (typeof window !== 'undefined') {
-        if (window.location.search) {
+        const routeQuery = currentRoute.split('?')[1];
+        if (routeQuery) {
+          const sp = new URLSearchParams(routeQuery);
+          secParam = sp.get('sec') || sp.get('section');
+          tabParam = sp.get('tab');
+        }
+
+        if (!secParam && window.location.search) {
           const sp = new URLSearchParams(window.location.search);
           secParam = sp.get('sec') || sp.get('section');
           tabParam = sp.get('tab');
@@ -55,7 +64,7 @@ export default function ReferencingPage({ onCopy, onNotify }) {
     } catch (err) {
       console.warn('[ReferencingPage] Deep-link param error:', err);
     }
-  }, []);
+  }, [currentRoute]);
 
   const currentSection = useMemo(() => {
     return REFERENCING_SECTIONS.find((s) => s.id === activeSectionId) || REFERENCING_SECTIONS[0];

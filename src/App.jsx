@@ -54,7 +54,7 @@ function AppLayout() {
 
   // Document Title update on route change
   useEffect(() => {
-    const clean = currentRoute.replace(/^[#/]+/, '').toLowerCase();
+    const clean = currentRoute.split('?')[0].replace(/^[#/]+/, '').toLowerCase();
     const titles = {
       '': 'Discovery Library — Comprehensive Digital Library & Learning Support',
       'home': 'Discovery Library — Comprehensive Digital Library & Learning Support',
@@ -68,6 +68,7 @@ function AppLayout() {
       'newsletter': 'Newsletter',
       'contact': 'Contact Us & FAQ',
       'llnd': 'My LLND Portal',
+      'learning-support': 'Learning & Language Support',
     };
     document.title = titles[clean] || 'Discovery Library — Comprehensive Digital Library & Learning Support';
   }, [currentRoute]);
@@ -118,9 +119,9 @@ function AppLayout() {
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
-  // Route View Resolver
+  // Route View Resolver (strip query string so ?q= never alters matched page)
   const activePageComponent = useMemo(() => {
-    const clean = currentRoute.replace(/^[#/]+/, '').toLowerCase();
+    const clean = currentRoute.split('?')[0].replace(/^[#/]+/, '').toLowerCase();
     if (!clean || clean === 'home') {
       return <Homepage cueHidden={cueHidden} onCopy={copyText} />;
     }
@@ -148,7 +149,7 @@ function AppLayout() {
     if (clean.startsWith('contact') || clean.startsWith('consult')) {
       return <ContactPage onNotify={notify} />;
     }
-    if (clean.startsWith('llnd')) {
+    if (clean.startsWith('llnd') || clean.startsWith('learning-support')) {
       return <LlndPage onNotify={notify} />;
     }
 

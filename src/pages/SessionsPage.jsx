@@ -8,6 +8,7 @@ import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
+import { useRouter } from '../context/RouterContext';
 import { useGravityFormMount } from '../services/gravityFormHandler';
 
 export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
@@ -17,6 +18,7 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
     hasLiveUpcomingSessions,
     isInitialLoading,
   } = useWpData();
+  const { currentRoute } = useRouter();
 
   const [recSearch, setRecSearch] = useState('');
   const [rsvpSession, setRsvpSession] = useState(null);
@@ -26,6 +28,18 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
   const playbackTriggerRef = useRef(null);
   const playbackModalRef = useRef(null);
 
+  useEffect(() => {
+    const queryStr = currentRoute.split('?')[1];
+    if (queryStr) {
+      const qParam = new URLSearchParams(queryStr).get('q');
+      if (qParam !== null) {
+        setRecSearch(qParam);
+        return;
+      }
+    }
+    setRecSearch('');
+  }, [currentRoute]);
+
   // Attach confirmation message handler on the modal mount
   useGravityFormMount('gravity-form-session-mount', () => {
     if (onNotify) onNotify(`Spot reserved for "${rsvpSession?.title || 'session'}"!`);
@@ -33,14 +47,14 @@ export default function SessionsPage({ scrollTo = 'upcoming', onNotify }) {
 
   // Auto-scroll to section based on navigation target
   useEffect(() => {
-    if (scrollTo === 'recordings' || window.location.hash.includes('recording')) {
+    if (scrollTo === 'recordings' || currentRoute.toLowerCase().includes('recording')) {
       const timer = setTimeout(() => {
         const el = document.getElementById('previous-recordings');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [scrollTo]);
+  }, [scrollTo, currentRoute]);
 
   const filteredRecordings = useMemo(() => {
     const q = recSearch.trim().toLowerCase();

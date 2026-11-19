@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
@@ -6,6 +6,7 @@ import RippleButton from '../components/ui/RippleButton';
 import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import { useWpData } from '../context/WpContext';
+import { useRouter } from '../context/RouterContext';
 import { parseNewsletterDate } from '../services/wpApi';
 
 const FALLBACK_NEWSLETTERS = [
@@ -60,8 +61,19 @@ function buildDownloadFilename(item) {
 
 export default function NewsletterPage({ onNotify }) {
   const { newsletters, isNewslettersLive, isInitialLoading } = useWpData();
+  const { currentRoute } = useRouter();
   const [selectedYear, setSelectedYear] = useState('2026');
   const [downloadingId, setDownloadingId] = useState(null);
+
+  useEffect(() => {
+    const queryStr = currentRoute.split('?')[1];
+    if (queryStr) {
+      const yParam = new URLSearchParams(queryStr).get('year');
+      if (yParam) {
+        setSelectedYear(String(yParam));
+      }
+    }
+  }, [currentRoute]);
 
   const processedNewsletters = useMemo(() => {
     if (newsletters && newsletters.length > 0) {

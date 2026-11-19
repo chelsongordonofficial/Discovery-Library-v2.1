@@ -8,11 +8,25 @@ import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import { WORD_LESSONS, SEARCH_VIDEOS } from '../data';
 import { useWpData } from '../context/WpContext';
+import { useRouter } from '../context/RouterContext';
 
 export default function VideosPage({ onNotify }) {
   const { wpVideos } = useWpData();
+  const { currentRoute } = useRouter();
   const [search, setSearch] = useState('');
   const [activeVideo, setActiveVideo] = useState(null);
+
+  useEffect(() => {
+    const queryStr = currentRoute.split('?')[1];
+    if (queryStr) {
+      const qParam = new URLSearchParams(queryStr).get('q');
+      if (qParam !== null) {
+        setSearch(qParam);
+        return;
+      }
+    }
+    setSearch('');
+  }, [currentRoute]);
 
   // Combine live WP CPT posts with fallback training videos
   const allVideos = useMemo(() => {

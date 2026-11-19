@@ -38,18 +38,21 @@ export function resolveUrl(to) {
     return to;
   }
 
-  const clean = to.replace(/^[#/]+/, '').toLowerCase();
+  const [rawPath, rawQuery] = to.split('?');
+  const suffix = rawQuery ? `?${rawQuery}` : '';
+  const clean = (rawPath || '').replace(/^[#/]+/, '').toLowerCase();
 
-  if (!clean || clean === 'home') return '/';
-  if (clean.startsWith('resource')) return '/resources';
-  if (clean.startsWith('video')) return '/videos';
-  if (clean.startsWith('session') || clean.startsWith('upcoming') || clean.startsWith('training')) return '/sessions';
-  if (clean.startsWith('referenc')) return '/referencing';
-  if (clean.startsWith('newsletter')) return '/newsletter';
+  if (!clean || clean === 'home') return `/${suffix}`;
+  if (clean.startsWith('resource')) return `/resources${suffix}`;
+  if (clean.startsWith('video')) return `/videos${suffix}`;
+  if (clean.startsWith('session') || clean.startsWith('upcoming') || clean.startsWith('training')) return `/sessions${suffix}`;
+  if (clean.startsWith('referenc')) return `/referencing${suffix}`;
+  if (clean.startsWith('newsletter')) return `/newsletter${suffix}`;
   if (clean.startsWith('llnd') || clean.startsWith('myllnd')) return 'https://myllnd.com/login';
-  if (clean.startsWith('consult') || clean.startsWith('contact')) return '/contact';
-  if (clean.includes('link') || clean.startsWith('tool')) return '/useful-links';
-  if (clean.startsWith('record')) return '/recordings';
+  if (clean.startsWith('learning-support')) return `/learning-support${suffix}`;
+  if (clean.startsWith('consult') || clean.startsWith('contact')) return `/contact${suffix}`;
+  if (clean.includes('link') || clean.startsWith('tool')) return `/useful-links${suffix}`;
+  if (clean.startsWith('record')) return `/recordings${suffix}`;
 
-  return `/${clean}`;
+  return `/${clean}${suffix}`;
 }

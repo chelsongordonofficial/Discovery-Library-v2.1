@@ -6,7 +6,7 @@ import SpecularButton from '../components/ui/SpecularButton';
 import GradientText from '../components/ui/GradientText';
 import { SITE_URLS } from '../data/urls';
 
-const LLND_PILLARS = [
+export const LLND_PILLARS = [
   {
     title: 'Language & Grammar',
     icon: 'book',
