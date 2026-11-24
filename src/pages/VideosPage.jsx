@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import Icon from '../components/ui/Icon';
 import Link from '../components/ui/Link';
 import Reveal from '../components/ui/Reveal';
@@ -9,11 +9,30 @@ import GradientText from '../components/ui/GradientText';
 import { WORD_LESSONS, SEARCH_VIDEOS } from '../data';
 import { useWpData } from '../context/WpContext';
 import { useRouter } from '../context/RouterContext';
+import { extractVideoCategory } from '../services/wpApi';
+
+const VIDEO_CATEGORIES = [
+  'All Videos',
+  'AI & Technology',
+  'VET Compliance & Policy',
+  'Trainer & Assessor Standards',
+  'Student Support & Wellbeing',
+  'Software Skills',
+];
+
+function normalizeCategoryKey(val = '') {
+  return val
+    .toLowerCase()
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export default function VideosPage({ onNotify }) {
   const { wpVideos } = useWpData();
   const { currentRoute } = useRouter();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Videos');
   const [activeVideo, setActiveVideo] = useState(null);
 
   useEffect(() => {
@@ -30,20 +49,25 @@ export default function VideosPage({ onNotify }) {
 
   // Combine live WP CPT posts with fallback training videos
   const allVideos = useMemo(() => {
-    const liveItems = (wpVideos || []).map((v, idx) => ({
-      id: `wp-${v.id || idx}`,
-      title: v.title,
-      desc: v.desc || '',
-      duration: '12:00',
-      url: v.video_url || '',
-      quiz_link: v.quiz_link || '',
-      isWp: true,
-    }));
+    const liveItems = (wpVideos || []).map((v, idx) => {
+      const parsed = extractVideoCategory(v.desc || '');
+      return {
+        id: `wp-${v.id || idx}`,
+        title: v.title,
+        desc: parsed.cleanDescription,
+        category: v.category || parsed.category || '',
+        duration: '12:00',
+        url: v.video_url || '',
+        quiz_link: v.quiz_link || '',
+        isWp: true,
+      };
+    });
 
     const fallbackSearchItems = SEARCH_VIDEOS.map(([title, desc], index) => ({
       id: `vid-${index}`,
       title,
       desc,
+      category: '',
       duration: `${10 + (index % 5)}:00`,
       url: 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Microsoft%20Word%20Training%20(1).mp4',
       quiz_link: 'https://forms.gle/EfYLeaWkr51kSdYc7',
@@ -54,6 +78,7 @@ export default function VideosPage({ onNotify }) {
       id: `word-${i}`,
       title: `MS Word: ${title}`,
       desc: `Hands-on tutorial on ${title.toLowerCase()} for vocational reports and assessment portfolios.`,
+      category: 'Software Skills',
       duration: `0${5 + i}:30`,
       url: 'https://cdn.vconsultancy.com.au/media/vid/discovery_library/Microsoft%20Word%20Training%20(1).mp4',
       quiz_link: null,
@@ -70,12 +95,23 @@ export default function VideosPage({ onNotify }) {
   }, [wpVideos]);
 
   const filteredVideos = useMemo(() => {
-    if (!search.trim()) return allVideos;
-    const q = search.toLowerCase();
-    return allVideos.filter(
-      (v) => v.title.toLowerCase().includes(q) || v.desc.toLowerCase().includes(q)
-    );
-  }, [allVideos, search]);
+    const activeCatKey = normalizeCategoryKey(selectedCategory);
+    const q = search.trim().toLowerCase();
+
+    return allVideos.filter((v) => {
+      if (selectedCategory !== 'All Videos') {
+        const videoCatKey = normalizeCategoryKey(v.category);
+        if (videoCatKey !== activeCatKey) return false;
+      }
+
+      if (!q) return true;
+      return (
+        (v.title || '').toLowerCase().includes(q) ||
+        (v.desc || '').toLowerCase().includes(q) ||
+        (v.category || '').toLowerCase().includes(q)
+      );
+    });
+  }, [allVideos, search, selectedCategory]);
 
   const handlePlay = (video) => {
     if (!video?.url) {
@@ -119,12 +155,12 @@ export default function VideosPage({ onNotify }) {
           </p>
         </Reveal>
 
-        {/* Clean Search Bar - No filter pills, matched to 960px card width */}
+        {/* Search Bar & Category Filter Tabs matched to 960px card width */}
         <Reveal
           className="glass panel"
           style={{
             maxWidth: 960,
-            margin: '0 auto 36px',
+            margin: '0 auto 20px',
             padding: '14px 20px',
             borderRadius: 16,
           }}
@@ -162,6 +198,70 @@ export default function VideosPage({ onNotify }) {
                 Clear
               </button>
             )}
+          </div>
+        </Reveal>
+
+        {/* 6 Category Filter Tabs with Fluid Spring Pill */}
+        <Reveal style={{ maxWidth: 960, margin: '0 auto 32px' }}>
+          <div
+            className="filter-group"
+            role="tablist"
+            aria-label="Filter training videos by category"
+            style={{ justifyContent: 'flex-start' }}
+          >
+            {VIDEO_CATEGORIES.map((category) => {
+              const isActive = selectedCategory === category;
+              return (
+                <motion.button
+                  key={category}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  whileTap={{ scale: 0.96 }}
+                  className="filter-tab"
+                  style={
+                    isActive
+                      ? {
+                          color: 'var(--ink)',
+                          borderColor: 'transparent',
+                          background: 'transparent',
+                          fontWeight: 700,
+                        }
+                      : undefined
+                  }
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="videos-category-active-pill"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 420,
+                        damping: 32,
+                      }}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: 100,
+                        background: 'linear-gradient(135deg, #FFD860, #FFB020)',
+                        boxShadow: '0 4px 14px rgba(255, 200, 58, 0.3)',
+                        zIndex: 0,
+                      }}
+                    />
+                  )}
+                  <span
+                    style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      color: isActive ? 'var(--ink)' : undefined,
+                      transition: 'color 0.2s ease',
+                    }}
+                  >
+                    {category}
+                  </span>
+                </motion.button>
+              );
+            })}
           </div>
         </Reveal>
 
@@ -216,35 +316,70 @@ export default function VideosPage({ onNotify }) {
           </div>
         )}
 
-        {/* Video Cards List - 1 Card Per Row with Scroll Image Reveal applied to the whole card */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24, maxWidth: 960, margin: '0 auto' }}>
-          {filteredVideos.map((v, index) => (
-            <VideoCardRow key={v.id} video={v} index={index} onPlay={handlePlay} />
-          ))}
+        {/* Video Cards List - 1 Card Per Row with Fluid Spring Category Transition */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={selectedCategory}
+            initial={{ opacity: 0, y: 14, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{
+              opacity: 0,
+              y: -8,
+              scale: 0.99,
+              transition: { duration: 0.14, ease: 'easeIn' },
+            }}
+            transition={{
+              type: 'spring',
+              stiffness: 320,
+              damping: 28,
+              mass: 0.85,
+            }}
+            style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24, maxWidth: 960, margin: '0 auto' }}
+          >
+            {filteredVideos.map((v, index) => (
+              <VideoCardRow key={v.id} video={v} index={index} onPlay={handlePlay} />
+            ))}
 
-          {filteredVideos.length === 0 && (
-            <div
-              className="glass panel"
-              style={{
-                padding: '48px 24px',
-                textAlign: 'center',
-                borderRadius: 16,
-              }}
-            >
-              <p style={{ color: 'var(--sub)', fontSize: 16 }}>
-                No training videos found matching "{search}".
-              </p>
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="btn btn-ghost btn-sm"
-                style={{ marginTop: 16 }}
+            {filteredVideos.length === 0 && (
+              <div
+                className="glass panel"
+                style={{
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  borderRadius: 16,
+                }}
               >
-                Clear Search
-              </button>
-            </div>
-          )}
-        </div>
+                <p style={{ color: 'var(--sub)', fontSize: 16 }}>
+                  {search.trim() && selectedCategory !== 'All Videos'
+                    ? `No training videos found in "${selectedCategory}" matching "${search}".`
+                    : selectedCategory !== 'All Videos'
+                      ? `No training videos found in "${selectedCategory}".`
+                      : `No training videos found matching "${search}".`}
+                </p>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+                  {search.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch('')}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                  {selectedCategory !== 'All Videos' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('All Videos')}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Show All Videos
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

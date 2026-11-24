@@ -16,7 +16,7 @@ import {
 } from '../data/index.js';
 
 export const WP_DOMAIN = 'https://discoverylibrary.com.au';
-const CACHE_KEY = 'discovery_library_wp_cache_v10';
+const CACHE_KEY = 'discovery_library_wp_cache_v11';
 
 export const WP_ENDPOINTS = {
   trainingVideos: `${WP_DOMAIN}/wp-json/wp/v2/training_video`,
@@ -38,6 +38,7 @@ export function getStoredWpCache() {
     localStorage.removeItem('discovery_library_wp_cache_v7');
     localStorage.removeItem('discovery_library_wp_cache_v8');
     localStorage.removeItem('discovery_library_wp_cache_v9');
+    localStorage.removeItem('discovery_library_wp_cache_v10');
 
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
@@ -262,6 +263,22 @@ export function normalizeUpcomingSession(item) {
   return sessionObj;
 }
 
+const VIDEO_CATEGORY_REGEX = /\{\s*category\s*=\s*([^}]*)\}/i;
+
+/**
+ * Extracts `{category=...}` from description text and returns clean description + category
+ */
+export function extractVideoCategory(rawDescription = '') {
+  const decoded = decodeHtml(rawDescription || '');
+  const match = decoded.match(VIDEO_CATEGORY_REGEX);
+  const category = match ? match[1].trim() : '';
+  const cleanDescription = decoded
+    .replace(/\{\s*category\s*=\s*[^}]*\}/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return { category, cleanDescription };
+}
+
 /**
  * Normalizes a training_video CPT item from WordPress
  */
@@ -271,12 +288,14 @@ export function normalizeTrainingVideo(item) {
   if (meta.is_visible === false) return null;
 
   const title = meta.show_title === false ? '' : decodeHtml(item.title?.rendered || 'Training Video');
-  const description = meta.show_description === false ? '' : decodeHtml(meta.description || '');
+  const rawDescription = meta.show_description === false ? '' : (meta.description || '');
+  const { category, cleanDescription } = extractVideoCategory(rawDescription);
 
   return {
     id: item.id,
     title,
-    desc: description,
+    desc: cleanDescription,
+    category,
     video_url: meta.show_video_url === false ? '' : (meta.video_url || ''),
     quiz_link: meta.show_quiz_link === false ? '' : (meta.quiz_link || ''),
     link: item.link || '',

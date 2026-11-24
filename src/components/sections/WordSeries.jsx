@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { motion } from 'motion/react';
 import Icon from '../ui/Icon';
 import Link from '../ui/Link';
 import Reveal from '../ui/Reveal';
@@ -55,6 +56,8 @@ function WordSeries() {
   const itemRefs = useRef([]);
   const wasPlayingBeforeScrollRef = useRef(false);
   const pendingAutoPlayRef = useRef(false);
+  const shouldScrollListRef = useRef(false);
+  const listScrollAnimRef = useRef(0);
   const controlsTimeoutRef = useRef(null);
 
   const lessons = useMemo(() => {
@@ -211,19 +214,55 @@ function WordSeries() {
     }
   };
 
-  // Reload & auto-play when switching between distinct CPT video URLs, keeping row visible in scrollable list
+  // Smoothly animate only the internal .mini list scroll without touching page scroll or cursor position
+  const animateListScrollTo = useCallback((listEl, targetTop, durationMs = 340) => {
+    if (!listEl) return;
+    if (listScrollAnimRef.current) cancelAnimationFrame(listScrollAnimRef.current);
+
+    const startTop = listEl.scrollTop;
+    const delta = targetTop - startTop;
+    if (Math.abs(delta) < 1) return;
+
+    const startTime = performance.now();
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+      listEl.scrollTop = startTop + delta * eased;
+      if (t < 1) {
+        listScrollAnimRef.current = requestAnimationFrame(step);
+      } else {
+        listScrollAnimRef.current = 0;
+      }
+    };
+    listScrollAnimRef.current = requestAnimationFrame(step);
+  }, []);
+
   useEffect(() => {
-    const listEl = listRef.current;
-    const itemEl = itemRefs.current[safeActiveIndex];
-    if (pendingAutoPlayRef.current && listEl && itemEl) {
-      const itemTop = itemEl.offsetTop;
-      const itemBottom = itemTop + itemEl.offsetHeight;
-      const viewTop = listEl.scrollTop;
-      const viewBottom = viewTop + listEl.clientHeight;
-      if (itemTop < viewTop) {
-        listEl.scrollTo({ top: itemTop, behavior: 'smooth' });
-      } else if (itemBottom > viewBottom) {
-        listEl.scrollTo({ top: itemBottom - listEl.clientHeight, behavior: 'smooth' });
+    return () => {
+      if (listScrollAnimRef.current) cancelAnimationFrame(listScrollAnimRef.current);
+    };
+  }, []);
+
+  // Reload & auto-play when switching between distinct CPT video URLs; never abruptly jump on user click
+  useEffect(() => {
+    if (shouldScrollListRef.current) {
+      shouldScrollListRef.current = false;
+      const listEl = listRef.current;
+      const itemEl = itemRefs.current[safeActiveIndex];
+      if (listEl && itemEl) {
+        const listRect = listEl.getBoundingClientRect();
+        const itemRect = itemEl.getBoundingClientRect();
+        const relTop = itemRect.top - listRect.top + listEl.scrollTop;
+        const relBottom = relTop + itemRect.height;
+        const viewTop = listEl.scrollTop;
+        const viewBottom = viewTop + listEl.clientHeight;
+
+        if (relTop < viewTop) {
+          animateListScrollTo(listEl, Math.max(0, relTop - 6));
+        } else if (relBottom > viewBottom) {
+          animateListScrollTo(listEl, relBottom - listEl.clientHeight + 6);
+        }
       }
     }
 
@@ -234,15 +273,18 @@ function WordSeries() {
     video.currentTime = 0;
     video.play().catch(() => {});
     wasPlayingBeforeScrollRef.current = false;
-  }, [currentLesson?.url, safeActiveIndex]);
+  }, [currentLesson?.url, safeActiveIndex, animateListScrollTo]);
 
-  // Choose a specific lesson
-  const selectLesson = (index) => {
-    setIsEnlarged(true);
+  // Choose a specific lesson without shifting page scroll or pulling cursor
+  const selectLesson = (index, options = {}) => {
+    if (!isEnlarged) {
+      setIsEnlarged(true);
+    }
     if (index === safeActiveIndex) {
       togglePlay();
       return;
     }
+    shouldScrollListRef.current = Boolean(options.scrollIntoView);
     pendingAutoPlayRef.current = true;
     setActiveIndex(index);
     setCurrentTime(0);
@@ -368,9 +410,9 @@ function WordSeries() {
               onPause={() => setIsPlaying(false)}
               onEnded={() => {
                 setIsPlaying(false);
-                // Autoplay next lesson if available
+                // Autoplay next lesson if available and smoothly glide list row into view
                 if (safeActiveIndex < lessons.length - 1) {
-                  selectLesson(safeActiveIndex + 1);
+                  selectLesson(safeActiveIndex + 1, { scrollIntoView: true });
                 }
               }}
               onClick={togglePlay}
@@ -548,31 +590,61 @@ function WordSeries() {
             </div>
           </div>
 
-          {/* Clickable Scrollable Lessons List in <ol class="mini"> */}
-          <ol ref={listRef} className="mini" role="list">
+          {/* Clickable Scrollable Lessons List in <motion.ol class="mini"> */}
+          <motion.ol layoutScroll ref={listRef} className="mini" role="list">
             {lessons.map((lesson, idx) => {
               const isCurrent = idx === safeActiveIndex;
               return (
-                <li
+                <motion.li
                   key={lesson.id || lesson.title}
                   ref={(el) => {
                     itemRefs.current[idx] = el;
                   }}
+                  whileHover={{ x: 3 }}
+                  whileTap={{ scale: 0.985 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                   className={`mini-item${isCurrent ? ' active' : ''}${isCurrent && isPlaying ? ' playing' : ''}`}
-                  onClick={() => selectLesson(idx)}
+                  onClick={() => selectLesson(idx, { scrollIntoView: false })}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      selectLesson(idx);
+                      selectLesson(idx, { scrollIntoView: true });
                     }
                   }}
                   tabIndex={0}
                   role="button"
                   aria-pressed={isCurrent}
                   title={`Click to play: ${lesson.title}`}
+                  style={isCurrent ? { background: 'transparent' } : undefined}
                 >
-                  <span className="mini-title">{lesson.title}</span>
-                  <span className="mini-status">
+                  {isCurrent && (
+                    <motion.span
+                      layoutId="word-series-active-row"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 380,
+                        damping: 30,
+                        mass: 0.8,
+                      }}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: 12,
+                        background: isPlaying
+                          ? 'rgba(255, 200, 58, 0.14)'
+                          : 'rgba(25, 214, 138, 0.12)',
+                        boxShadow: isPlaying
+                          ? 'inset 0 0 0 1px rgba(255, 200, 58, 0.35)'
+                          : 'inset 0 0 0 1px rgba(25, 214, 138, 0.3)',
+                        pointerEvents: 'none',
+                        zIndex: 0,
+                      }}
+                    />
+                  )}
+                  <span className="mini-title" style={{ position: 'relative', zIndex: 2 }}>
+                    {lesson.title}
+                  </span>
+                  <span className="mini-status" style={{ position: 'relative', zIndex: 2 }}>
                     {isCurrent && isPlaying ? (
                       <span className="mini-badge-playing">
                         <span className="bar bar1" />
@@ -588,10 +660,10 @@ function WordSeries() {
                       </span>
                     )}
                   </span>
-                </li>
+                </motion.li>
               );
             })}
-          </ol>
+          </motion.ol>
         </Reveal>
       </div>
     </section>
